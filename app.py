@@ -550,7 +550,7 @@ st.dataframe(results_df.style.format({
 }), use_container_width=True, hide_index=True)
 csv_out = results_df.to_csv(index=False).encode("utf-8-sig")
 st.download_button(
-label="📥 הורד דו"ח תוצאות מלא לאקסל (CSV)",
+label="📥 הורד דוח תוצאות מלא לאקסל (CSV)",
 data=csv_out,
 file_name=f"pile_analysis_V9_D{D}.csv",
 mime="text/csv"
