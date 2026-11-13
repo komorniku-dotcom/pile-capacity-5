@@ -341,13 +341,13 @@ default_base_table = pd.DataFrame({
 "Base Load (kN)": [0.0, 180.0, 380.0, 620.0, 900.0, 1150.0, 1300.0]
 })
 if base_model_type == "Hyperbolic (Classic Load Test)":
-q_ult_hyp = st.sidebar.number_input("Ultimate Base Stress q_ult (kPa)", value=3500.0, step=250.0)
-k_init_hyp = st.sidebar.number_input("Initial Base Stiffness k_init (kPa/m)", value=150000.0, step=10000.0)
-elif base_model_type == "Parabolic (B * sqrt(w))":
-B_parab = st.sidebar.number_input("Parabolic Base Factor B (kN/m^0.5)", value=1500.0, step=100.0)
+    q_ult_hyp = st.sidebar.number_input("Ultimate Base Stress q_ult (kPa)", value=3500.0, step=250.0)
+    k_init_hyp = st.sidebar.number_input("Initial Base Stiffness k_init (kPa/m)", value=150000.0, step=10000.0)
+    elif base_model_type == "Parabolic (B * sqrt(w))":
+    B_parab = st.sidebar.number_input("Parabolic Base Factor B (kN/m^0.5)", value=1500.0, step=100.0)
 else:
-st.sidebar.write("Edit Base Load Test Table:")
-default_base_table = st.sidebar.data_editor(default_base_table, num_rows="dynamic", hide_index=True)
+    st.sidebar.write("Edit Base Load Test Table:")
+    default_base_table = st.sidebar.data_editor(default_base_table, num_rows="dynamic", hide_index=True)
 
 # Main Panel
 
