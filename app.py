@@ -259,8 +259,8 @@ with col_inputs:
 default_E = {"בטון מחוספס": 30000000, "פלדה / ברזל": 210000000, "פלסטיק (HDPE)": 1500000, "עץ": 11000000}[pile_mat]
 E = st.number_input("מודול אלסטיות E (kPa)", value=default_E, step=1000000)
 with c2:
-D = st.number_input("קוטר הכלונס D (m)", min_value=0.2, max_value=3.0, value=0.6, step=0.05)
-soil_preset = st.selectbox(
+    D = st.number_input("קוטר הכלונס D (m)", min_value=0.2, max_value=3.0, value=0.6, step=0.05)
+    soil_preset = st.selectbox(
 "תבנית פרופיל קרקע להתחלה",
 [
 "Multi-layer Profile (Fill, Silt, Marl, Clay, Dense Sand)",
