@@ -375,161 +375,161 @@ with st.expander("Optional: Field Load Test Data for Comparison on Graph"):
     )
 layers_df = edited_df.dropna(subset=["Bottom Depth (m)", "Initial Pressuremeter σ'h (kPa)"]).sort_values(by="Bottom Depth (m)").reset_index(drop=True)
 if len(layers_df) > 0:
-res_zero_base = run_pile_model_from_base(layers_df, E, D, 0.0, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
-F_fric_at_zero_base = float(res_zero_base[4][0])
-P0_list, w0_tot_list, w0_el_list, w0_fr_list, Pbase_list, cum_fric_list = [], [], [], [], [], []
-if F_fric_at_zero_base > 0:
-partial_loads = np.linspace(0.0, min(F_fric_at_zero_base, P_max_user), 35)
-for p_val in partial_loads:
-_, wt, we, wf, Pn, _, _, _, _, cf, _, _, _ = run_pile_model_partial_load(layers_df, E, D, p_val)
-P0_list.append(float(Pn[0]))
-w0_tot_list.append(float(wt[0] * 1000.0))
-w0_el_list.append(float(we[0] * 1000.0))
-w0_fr_list.append(float(wf[0] * 1000.0))
-Pbase_list.append(0.0)
-cum_fric_list.append(float(cf[-1]))
-if P_max_user > F_fric_at_zero_base:
-wb = 0.0002
-step_wb = 0.0005
-for _ in range(300):
-_, wt, we, wf, Pn, _, _, _, _, cf, _, _, _ = run_pile_model_from_base(
-layers_df, E, D, wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
-)
-p_curr = float(Pn[0])
-P0_list.append(p_curr)
-w0_tot_list.append(float(wt[0] * 1000.0))
-w0_el_list.append(float(we[0] * 1000.0))
-w0_fr_list.append(float(wf[0] * 1000.0))
-Pbase_list.append(float(Pn[-1]))
-cum_fric_list.append(float(cf[-1]))
-if p_curr >= P_max_user or wb >= 0.5:
-break
-wb += step_wb
-if wb > 0.02:
-step_wb = 0.002
-if wb > 0.10:
-step_wb = 0.005
-st.markdown("---")
-st.subheader("2. Pile Performance Evaluation")
-target_P0 = st.slider(
-"Select Head Load P0 (kN) [10 kN ≈ 1 ton]:",
-min_value=0.0,
-max_value=float(P_max_user),
-value=min(round(F_fric_at_zero_base * 0.9, 1), float(P_max_user)),
-step=10.0
-)
-if target_P0 <= F_fric_at_zero_base:
-(depths, w_total_node, w_elastic_node, w_fric_node, P_node,
-t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
-dw_elastic_seg, q_base, state_seg) = run_pile_model_partial_load(layers_df, E, D, target_P0)
-else:
-low_wb, high_wb = 0.0, 0.5
-for _ in range(50):
-mid_wb = 0.5 * (low_wb + high_wb)
-res_tmp = run_pile_model_from_base(layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
-if res_tmp[4][0] < target_P0:
-low_wb = mid_wb
-else:
-high_wb = mid_wb
-(depths, w_total_node, w_elastic_node, w_fric_node, P_node,
-t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
-dw_elastic_seg, q_base, state_seg) = run_pile_model_from_base(
-layers_df, E, D, 0.5 * (low_wb + high_wb), base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
-)
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("Head Load P0", f"{P_node[0]:,.1f} kN", f"{P_node[0]/10.0:,.1f} ton")
-m2.metric("Total Head Disp w0", f"{w_total_node[0]*1000:.2f} mm")
-m3.metric("Base Load P_base", f"{P_node[-1]:,.1f} kN", f"q_base: {q_base:,.0f} kPa")
-m4.metric("Max Friction (q_base=0)", f"{F_fric_at_zero_base:,.1f} kN")
-st.info(
-f"Head Displacement Breakdown: "
-f"Elastic = *{w_elastic_node[0]1000:.2f} mm | "
-f"Friction/Soil = *{w_fric_node[0]1000:.2f} mm | "
-f"Total = *{w_total_node[0]1000:.2f} mm"
-)
-c_vis, c_curve = st.columns([1.0, 1.45])
-with c_vis:
-fig_soil = plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base)
-st.pyplot(fig_soil)
-with c_curve:
-fig_ls, ax_a = plt.subplots(figsize=(6.8, 5.2))
-ax_a.plot(w0_tot_list, P0_list, label="Model: Total Disp (w_total)", color="#1f497d", linewidth=2.4)
-ax_a.plot(w0_el_list, P0_list, "--", label="Model: Elastic Shortening (w_elastic)", color="#2e75b6")
-ax_a.plot(w0_fr_list, P0_list, "-.", label="Model: Friction/Base Disp (w_fric)", color="#e67e22")
-clean_field = field_test_df.dropna()
-if len(clean_field) > 0:
-ax_a.plot(
-clean_field["Measured Head Settlement w0 (mm)"],
-clean_field["Measured Head Load P0 (kN)"],
-"o-", color="#8e44ad", linewidth=1.8, markersize=6, label="Field Load Test (Measured)"
-)
-ax_a.axhline(F_fric_at_zero_base, color="green", linestyle=":", label=f"Friction Limit q_base=0 ({F_fric_at_zero_base:.0f} kN)")
-ax_a.scatter([w_total_node[0] * 1000.0], [P_node[0]], color="red", s=80, zorder=6, label="Current Evaluation Point")
-ax_a.set_ylim(0, P_max_user * 1.05)
-ax_a.set_xlabel("Pile Head Settlement w0 (mm)")
-ax_a.set_ylabel("Pile Head Load P0 (kN)")
-ax_a.set_title(f"Load-Settlement Curve (0 to {P_max_user:,.0f} kN)")
-ax_a.grid(True, linestyle="--", alpha=0.5)
-ax_a.legend(fontsize=8)
-plt.tight_layout()
-st.pyplot(fig_ls)
-tab1, tab2 = st.tabs(["Depth Profiles (Disp, Shear, Axial Load)", "Detailed Layer Table & CSV Export"])
-with tab1:
-fig_prof, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 4.3))
-mid_depths = [0.5 * (depths[i] + depths[i + 1]) for i in range(len(layers_df))]
-ax1.plot(w_total_node * 1000.0, depths, marker="o", label="Total", color="#1f497d")
-ax1.plot(w_elastic_node * 1000.0, depths, "--", label="Elastic", color="#2e75b6")
-ax1.plot(w_fric_node * 1000.0, depths, "-.", label="Friction/Base", color="#e67e22")
-ax1.set_title("Displacement Profile (mm)")
-ax1.set_xlabel("Displacement (mm)")
-ax1.set_ylabel("Depth (m)")
-ax1.invert_yaxis()
-ax1.legend(fontsize=8)
-ax1.grid(True, linestyle="--", alpha=0.5)
-ax2.plot(t_peak_seg, mid_depths, "--", label="Peak", color="gray")
-ax2.plot(t_res_seg, mid_depths, ":", label="Residual", color="red")
-ax2.plot(t_mob_seg, mid_depths, marker="s", label="Mobilized", color="#27ae60")
-ax2.set_title("Shear Stress Profile (kPa)")
-ax2.set_xlabel("Shear Stress (kPa)")
-ax2.invert_yaxis()
-ax2.legend(fontsize=8)
-ax2.grid(True, linestyle="--", alpha=0.5)
-ax3.plot(P_node, depths, marker="^", color="#8e44ad")
-ax3.set_title("Axial Load Distribution (kN)")
-ax3.set_xlabel("Axial Load (kN)")
-ax3.invert_yaxis()
-ax3.grid(True, linestyle="--", alpha=0.5)
-plt.tight_layout()
-st.pyplot(fig_prof)
-with tab2:
-results_df = pd.DataFrame({
-"Layer": range(1, len(layers_df) + 1),
-"Soil Type": layers_df["Soil Type"],
-"Depth (m)": [f"{depths[i]:.1f} - {depths[i+1]:.1f}" for i in range(len(layers_df))],
-"Total Disp (mm)": w_total_node[:-1] * 1000.0,
-"Elastic Shortening (mm)": dw_elastic_seg * 1000.0,
-"Friction Disp (mm)": w_fric_node[:-1] * 1000.0,
-"Peak Shear (kPa)": t_peak_seg,
-"Residual Shear (kPa)": t_res_seg,
-"Mobilized Shear (kPa)": t_mob_seg,
-"Layer Friction (kN)": F_fric_seg,
-"Axial Load at Top (kN)": P_node[:-1],
-"State": state_seg
-})
-st.dataframe(results_df.style.format({
-"Total Disp (mm)": "{:.2f}",
-"Elastic Shortening (mm)": "{:.2f}",
-"Friction Disp (mm)": "{:.2f}",
-"Peak Shear (kPa)": "{:.1f}",
-"Residual Shear (kPa)": "{:.1f}",
-"Mobilized Shear (kPa)": "{:.1f}",
-"Layer Friction (kN)": "{:.1f}",
-"Axial Load at Top (kN)": "{:,.1f}"
-}), use_container_width=True, hide_index=True)
-csv_out = results_df.to_csv(index=False).encode("utf-8-sig")
-st.download_button(
-label="Download Full Results Report (CSV)",
-data=csv_out,
-file_name=f"pile_analysis_V10_D{D}.csv",
-mime="text/csv"
-)
+    res_zero_base = run_pile_model_from_base(layers_df, E, D, 0.0, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
+    F_fric_at_zero_base = float(res_zero_base[4][0])
+    P0_list, w0_tot_list, w0_el_list, w0_fr_list, Pbase_list, cum_fric_list = [], [], [], [], [], []
+    if F_fric_at_zero_base > 0:
+    partial_loads = np.linspace(0.0, min(F_fric_at_zero_base, P_max_user), 35)
+    for p_val in partial_loads:
+    _, wt, we, wf, Pn, _, _, _, _, cf, _, _, _ = run_pile_model_partial_load(layers_df, E, D, p_val)
+    P0_list.append(float(Pn[0]))
+    w0_tot_list.append(float(wt[0] * 1000.0))
+    w0_el_list.append(float(we[0] * 1000.0))
+    w0_fr_list.append(float(wf[0] * 1000.0))
+    Pbase_list.append(0.0)
+    cum_fric_list.append(float(cf[-1]))
+    if P_max_user > F_fric_at_zero_base:
+    wb = 0.0002
+    step_wb = 0.0005
+    for _ in range(300):
+    _, wt, we, wf, Pn, _, _, _, _, cf, _, _, _ = run_pile_model_from_base(
+    layers_df, E, D, wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
+    )
+    p_curr = float(Pn[0])
+    P0_list.append(p_curr)
+    w0_tot_list.append(float(wt[0] * 1000.0))
+    w0_el_list.append(float(we[0] * 1000.0))
+    w0_fr_list.append(float(wf[0] * 1000.0))
+    Pbase_list.append(float(Pn[-1]))
+    cum_fric_list.append(float(cf[-1]))
+    if p_curr >= P_max_user or wb >= 0.5:
+    break
+    wb += step_wb
+    if wb > 0.02:
+    step_wb = 0.002
+    if wb > 0.10:
+    step_wb = 0.005
+    st.markdown("---")
+    st.subheader("2. Pile Performance Evaluation")
+    target_P0 = st.slider(
+    "Select Head Load P0 (kN) [10 kN ≈ 1 ton]:",
+    min_value=0.0,
+    max_value=float(P_max_user),
+    value=min(round(F_fric_at_zero_base * 0.9, 1), float(P_max_user)),
+    step=10.0
+    )
+    if target_P0 <= F_fric_at_zero_base:
+    (depths, w_total_node, w_elastic_node, w_fric_node, P_node,
+    t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
+    dw_elastic_seg, q_base, state_seg) = run_pile_model_partial_load(layers_df, E, D, target_P0)
+    else:
+    low_wb, high_wb = 0.0, 0.5
+    for _ in range(50):
+    mid_wb = 0.5 * (low_wb + high_wb)
+    res_tmp = run_pile_model_from_base(layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
+    if res_tmp[4][0] < target_P0:
+    low_wb = mid_wb
+    else:
+    high_wb = mid_wb
+    (depths, w_total_node, w_elastic_node, w_fric_node, P_node,
+    t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
+    dw_elastic_seg, q_base, state_seg) = run_pile_model_from_base(
+    layers_df, E, D, 0.5 * (low_wb + high_wb), base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
+    )
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Head Load P0", f"{P_node[0]:,.1f} kN", f"{P_node[0]/10.0:,.1f} ton")
+    m2.metric("Total Head Disp w0", f"{w_total_node[0]*1000:.2f} mm")
+    m3.metric("Base Load P_base", f"{P_node[-1]:,.1f} kN", f"q_base: {q_base:,.0f} kPa")
+    m4.metric("Max Friction (q_base=0)", f"{F_fric_at_zero_base:,.1f} kN")
+    st.info(
+    f"Head Displacement Breakdown: "
+    f"Elastic = *{w_elastic_node[0]1000:.2f} mm | "
+    f"Friction/Soil = *{w_fric_node[0]1000:.2f} mm | "
+    f"Total = *{w_total_node[0]1000:.2f} mm"
+    )
+    c_vis, c_curve = st.columns([1.0, 1.45])
+    with c_vis:
+    fig_soil = plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base)
+    st.pyplot(fig_soil)
+    with c_curve:
+    fig_ls, ax_a = plt.subplots(figsize=(6.8, 5.2))
+    ax_a.plot(w0_tot_list, P0_list, label="Model: Total Disp (w_total)", color="#1f497d", linewidth=2.4)
+    ax_a.plot(w0_el_list, P0_list, "--", label="Model: Elastic Shortening (w_elastic)", color="#2e75b6")
+    ax_a.plot(w0_fr_list, P0_list, "-.", label="Model: Friction/Base Disp (w_fric)", color="#e67e22")
+    clean_field = field_test_df.dropna()
+    if len(clean_field) > 0:
+    ax_a.plot(
+    clean_field["Measured Head Settlement w0 (mm)"],
+    clean_field["Measured Head Load P0 (kN)"],
+    "o-", color="#8e44ad", linewidth=1.8, markersize=6, label="Field Load Test (Measured)"
+    )
+    ax_a.axhline(F_fric_at_zero_base, color="green", linestyle=":", label=f"Friction Limit q_base=0 ({F_fric_at_zero_base:.0f} kN)")
+    ax_a.scatter([w_total_node[0] * 1000.0], [P_node[0]], color="red", s=80, zorder=6, label="Current Evaluation Point")
+    ax_a.set_ylim(0, P_max_user * 1.05)
+    ax_a.set_xlabel("Pile Head Settlement w0 (mm)")
+    ax_a.set_ylabel("Pile Head Load P0 (kN)")
+    ax_a.set_title(f"Load-Settlement Curve (0 to {P_max_user:,.0f} kN)")
+    ax_a.grid(True, linestyle="--", alpha=0.5)
+    ax_a.legend(fontsize=8)
+    plt.tight_layout()
+    st.pyplot(fig_ls)
+    tab1, tab2 = st.tabs(["Depth Profiles (Disp, Shear, Axial Load)", "Detailed Layer Table & CSV Export"])
+    with tab1:
+    fig_prof, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 4.3))
+    mid_depths = [0.5 * (depths[i] + depths[i + 1]) for i in range(len(layers_df))]
+    ax1.plot(w_total_node * 1000.0, depths, marker="o", label="Total", color="#1f497d")
+    ax1.plot(w_elastic_node * 1000.0, depths, "--", label="Elastic", color="#2e75b6")
+    ax1.plot(w_fric_node * 1000.0, depths, "-.", label="Friction/Base", color="#e67e22")
+    ax1.set_title("Displacement Profile (mm)")
+    ax1.set_xlabel("Displacement (mm)")
+    ax1.set_ylabel("Depth (m)")
+    ax1.invert_yaxis()
+    ax1.legend(fontsize=8)
+    ax1.grid(True, linestyle="--", alpha=0.5)
+    ax2.plot(t_peak_seg, mid_depths, "--", label="Peak", color="gray")
+    ax2.plot(t_res_seg, mid_depths, ":", label="Residual", color="red")
+    ax2.plot(t_mob_seg, mid_depths, marker="s", label="Mobilized", color="#27ae60")
+    ax2.set_title("Shear Stress Profile (kPa)")
+    ax2.set_xlabel("Shear Stress (kPa)")
+    ax2.invert_yaxis()
+    ax2.legend(fontsize=8)
+    ax2.grid(True, linestyle="--", alpha=0.5)
+    ax3.plot(P_node, depths, marker="^", color="#8e44ad")
+    ax3.set_title("Axial Load Distribution (kN)")
+    ax3.set_xlabel("Axial Load (kN)")
+    ax3.invert_yaxis()
+    ax3.grid(True, linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    st.pyplot(fig_prof)
+    with tab2:
+    results_df = pd.DataFrame({
+    "Layer": range(1, len(layers_df) + 1),
+    "Soil Type": layers_df["Soil Type"],
+    "Depth (m)": [f"{depths[i]:.1f} - {depths[i+1]:.1f}" for i in range(len(layers_df))],
+    "Total Disp (mm)": w_total_node[:-1] * 1000.0,
+    "Elastic Shortening (mm)": dw_elastic_seg * 1000.0,
+    "Friction Disp (mm)": w_fric_node[:-1] * 1000.0,
+    "Peak Shear (kPa)": t_peak_seg,
+    "Residual Shear (kPa)": t_res_seg,
+    "Mobilized Shear (kPa)": t_mob_seg,
+    "Layer Friction (kN)": F_fric_seg,
+    "Axial Load at Top (kN)": P_node[:-1],
+    "State": state_seg
+    })
+    st.dataframe(results_df.style.format({
+    "Total Disp (mm)": "{:.2f}",
+    "Elastic Shortening (mm)": "{:.2f}",
+    "Friction Disp (mm)": "{:.2f}",
+    "Peak Shear (kPa)": "{:.1f}",
+    "Residual Shear (kPa)": "{:.1f}",
+    "Mobilized Shear (kPa)": "{:.1f}",
+    "Layer Friction (kN)": "{:.1f}",
+    "Axial Load at Top (kN)": "{:,.1f}"
+    }), use_container_width=True, hide_index=True)
+    csv_out = results_df.to_csv(index=False).encode("utf-8-sig")
+    st.download_button(
+    label="Download Full Results Report (CSV)",
+    data=csv_out,
+    file_name=f"pile_analysis_V10_D{D}.csv",
+    mime="text/csv"
+    )
