@@ -366,13 +366,13 @@ required=True
 }
 )
 with st.expander("Optional: Field Load Test Data for Comparison on Graph"):
-field_test_df = st.data_editor(
-pd.DataFrame({
-"Measured Head Load P0 (kN)": [0.0, 400.0, 800.0, 1200.0, 1600.0],
-"Measured Head Settlement w0 (mm)": [0.0, 1.2, 3.1, 6.5, 14.0]
-}),
-num_rows="dynamic", use_container_width=True, hide_index=True
-)
+    field_test_df = st.data_editor(
+    pd.DataFrame({
+    "Measured Head Load P0 (kN)": [0.0, 400.0, 800.0, 1200.0, 1600.0],
+    "Measured Head Settlement w0 (mm)": [0.0, 1.2, 3.1, 6.5, 14.0]
+    }),
+    num_rows="dynamic", use_container_width=True, hide_index=True
+    )
 layers_df = edited_df.dropna(subset=["Bottom Depth (m)", "Initial Pressuremeter σ'h (kPa)"]).sort_values(by="Bottom Depth (m)").reset_index(drop=True)
 if len(layers_df) > 0:
 res_zero_base = run_pile_model_from_base(layers_df, E, D, 0.0, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
