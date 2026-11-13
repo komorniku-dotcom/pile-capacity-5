@@ -442,10 +442,10 @@ else:
     m3.metric("Base Load P_base", f"{P_node[-1]:,.1f} kN", f"q_base: {q_base:,.0f} kPa")
     m4.metric("Max Friction (q_base=0)", f"{F_fric_at_zero_base:,.1f} kN")
     st.info(
-    f"Head Displacement Breakdown: "
-    f"Elastic = *{w_elastic_node[0]1000:.2f} mm | "
-    f"Friction/Soil = *{w_fric_node[0]1000:.2f} mm | "
-    f"Total = *{w_total_node[0]1000:.2f} mm"
+        f"Head Displacement Breakdown: "
+        f"Elastic = {w_elastic_node[0] * 1000:.2f} mm | "
+        f"Friction/Soil = {w_fric_node[0] * 1000:.2f} mm | "
+        f"Total = {w_total_node[0] * 1000:.2f} mm"
     )
     c_vis, c_curve = st.columns([1.0, 1.45])
     with c_vis:
