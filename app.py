@@ -305,7 +305,7 @@ def build_preset_df(preset_name, f_peak, f_res):
 }
 return presets[preset_name]
 
---- ממשק קלט ---
+#--- ממשק קלט ---
 
 col_inputs, col_results = st.columns([1.25, 1.75])
 with col_inputs:
@@ -374,7 +374,7 @@ required=True
 )
 layers_df = edited_df.dropna(subset=["Bottom Depth (m)", "Initial Pressuremeter σ'h (kPa)"]).sort_values(by="Bottom Depth (m)").reset_index(drop=True)
 
---- חישוב ותצוגת תוצאות ---
+#--- חישוב ותצוגת תוצאות ---
 
 if len(layers_df) > 0:
 res_zero_base = run_pile_model_from_base(layers_df, E, D, 0.0, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
