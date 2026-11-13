@@ -538,4 +538,3 @@ tab2.download_button(
     file_name=f"pile_analysis_V10_D{D}.csv",
     mime="text/csv"
 )
-    )
