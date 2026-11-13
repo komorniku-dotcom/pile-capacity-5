@@ -303,7 +303,7 @@ def build_preset_df(preset_name, f_peak, f_res):
 "Residual Disp w_res (mm)": [10.0] * 10
 })
 }
-return presets[preset_name]
+    return presets[preset_name]
 
 # Sidebar Inputs
 
