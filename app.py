@@ -378,7 +378,7 @@ if len(layers_df) > 0:
     res_zero_base = run_pile_model_from_base(layers_df, E, D, 0.0, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
     F_fric_at_zero_base = float(res_zero_base[4][0])
     P0_list, w0_tot_list, w0_el_list, w0_fr_list, Pbase_list, cum_fric_list = [], [], [], [], [], []
-    if F_fric_at_zero_base > 0:
+if F_fric_at_zero_base > 0:
     partial_loads = np.linspace(0.0, min(F_fric_at_zero_base, P_max_user), 35)
     for p_val in partial_loads:
     _, wt, we, wf, Pn, _, _, _, _, cf, _, _, _ = run_pile_model_partial_load(layers_df, E, D, p_val)
@@ -402,12 +402,12 @@ if len(layers_df) > 0:
     w0_fr_list.append(float(wf[0] * 1000.0))
     Pbase_list.append(float(Pn[-1]))
     cum_fric_list.append(float(cf[-1]))
-    if p_curr >= P_max_user or wb >= 0.5:
+if p_curr >= P_max_user or wb >= 0.5:
     break
     wb += step_wb
-    if wb > 0.02:
+if wb > 0.02:
     step_wb = 0.002
-    if wb > 0.10:
+if wb > 0.10:
     step_wb = 0.005
     st.markdown("---")
     st.subheader("2. Pile Performance Evaluation")
@@ -418,7 +418,7 @@ if len(layers_df) > 0:
     value=min(round(F_fric_at_zero_base * 0.9, 1), float(P_max_user)),
     step=10.0
     )
-    if target_P0 <= F_fric_at_zero_base:
+if target_P0 <= F_fric_at_zero_base:
     (depths, w_total_node, w_elastic_node, w_fric_node, P_node,
     t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
     dw_elastic_seg, q_base, state_seg) = run_pile_model_partial_load(layers_df, E, D, target_P0)
@@ -427,7 +427,7 @@ if len(layers_df) > 0:
     for _ in range(50):
     mid_wb = 0.5 * (low_wb + high_wb)
     res_tmp = run_pile_model_from_base(layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
-    if res_tmp[4][0] < target_P0:
+if res_tmp[4][0] < target_P0:
     low_wb = mid_wb
     else:
     high_wb = mid_wb
@@ -457,7 +457,7 @@ if len(layers_df) > 0:
     ax_a.plot(w0_el_list, P0_list, "--", label="Model: Elastic Shortening (w_elastic)", color="#2e75b6")
     ax_a.plot(w0_fr_list, P0_list, "-.", label="Model: Friction/Base Disp (w_fric)", color="#e67e22")
     clean_field = field_test_df.dropna()
-    if len(clean_field) > 0:
+if len(clean_field) > 0:
     ax_a.plot(
     clean_field["Measured Head Settlement w0 (mm)"],
     clean_field["Measured Head Load P0 (kN)"],
