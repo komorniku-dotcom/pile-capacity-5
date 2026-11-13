@@ -403,7 +403,7 @@ for _ in range(300):
     Pbase_list.append(float(Pn[-1]))
     cum_fric_list.append(float(cf[-1]))
 if p_curr >= P_max_user or wb >= 0.5:
-    break
+break
     wb += step_wb
 if wb > 0.02:
     step_wb = 0.002
