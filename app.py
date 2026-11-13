@@ -4,8 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-st.set_page_config(page_title="Pile Geomechanical Model V9.3", layout="wide")
-st.title("🏗️ מודל גיאומכני רב-שכבתי לכלונס – חתך שכבות באנגלית והשוואה לניסיון העמסה")
+st.set_page_config(page_title="Pile Geomechanical Model V10", layout="wide")
+st.title("Pile Geomechanical Model - Soil Cross Section & Load Test Comparison")
 st.markdown("---")
 
 SOIL_COLORS = {
@@ -305,17 +305,15 @@ def build_preset_df(preset_name, f_peak, f_res):
 }
 return presets[preset_name]
 
-#--- ממשק קלט ---
+Sidebar Inputs
 
-col_inputs, col_results = st.columns([1.25, 1.75])
-with col_inputs:
-st.header("1. תכונות הכלונס וברירת מחדל")
-pile_mat = st.selectbox("חומר הכלונס (Pile Material)", ["Concrete", "Steel", "HDPE Plastic", "Wood"])
+st.sidebar.header("1. Pile Properties & Soil Preset")
+pile_mat = st.sidebar.selectbox("Pile Material", ["Concrete", "Steel", "HDPE Plastic", "Wood"])
 default_E = {"Concrete": 30000000, "Steel": 210000000, "HDPE Plastic": 1500000, "Wood": 11000000}[pile_mat]
-E = st.number_input("מודול אלסטיות E (kPa)", value=default_E, step=1000000)
-D = st.number_input("קוטר הכלונס D (m)", min_value=0.2, max_value=3.0, value=0.6, step=0.05)
-soil_preset = st.selectbox(
-"תבנית פרופיל קרקע (Soil Profile Preset)",
+E = st.sidebar.number_input("Elastic Modulus E (kPa)", value=default_E, step=1000000)
+D = st.sidebar.number_input("Pile Diameter D (m)", min_value=0.2, max_value=3.0, value=0.6, step=0.05)
+soil_preset = st.sidebar.selectbox(
+"Soil Profile Preset",
 [
 "Multi-layer (Fill, Silt, Marl, Clay, Dense Sand)",
 "Dense Sand",
@@ -327,14 +325,14 @@ soil_preset = st.selectbox(
 )
 f_peak, f_res = {"Concrete": (1.0, 1.0), "Steel": (0.67, 0.76), "HDPE Plastic": (0.45, 0.55), "Wood": (0.85, 0.85)}[pile_mat]
 default_layers = build_preset_df(soil_preset, f_peak, f_res)
-st.markdown("---")
-st.header("2. טווח עומסים להשוואה ותגובת קצה")
-P_max_user = st.number_input(
-"עומס מקסימלי להצגה בגרף P_max (kN):",
+st.sidebar.markdown("---")
+st.sidebar.header("2. Load Range & Base Resistance")
+P_max_user = st.sidebar.number_input(
+"Max Load for Curve P_max (kN):",
 min_value=100.0, max_value=50000.0, value=2500.0, step=100.0
 )
-base_model_type = st.radio(
-"מודל להתנהגות קצה הכלונס:",
+base_model_type = st.sidebar.radio(
+"Base Resistance Model:",
 ["Hyperbolic (Classic Load Test)", "Parabolic (B * sqrt(w))", "Custom Load Test Table"]
 )
 B_parab, q_ult_hyp, k_init_hyp = 1500.0, 3500.0, 150000.0
@@ -343,22 +341,17 @@ default_base_table = pd.DataFrame({
 "Base Load (kN)": [0.0, 180.0, 380.0, 620.0, 900.0, 1150.0, 1300.0]
 })
 if base_model_type == "Hyperbolic (Classic Load Test)":
-q_ult_hyp = st.number_input("מאמץ קצה גבולי q_ult (kPa)", value=3500.0, step=250.0)
-k_init_hyp = st.number_input("קשיחות קצה התחלתית k_init (kPa/m)", value=150000.0, step=10000.0)
+q_ult_hyp = st.sidebar.number_input("Ultimate Base Stress q_ult (kPa)", value=3500.0, step=250.0)
+k_init_hyp = st.sidebar.number_input("Initial Base Stiffness k_init (kPa/m)", value=150000.0, step=10000.0)
 elif base_model_type == "Parabolic (B * sqrt(w))":
-B_parab = st.number_input("מקדם קשיחות בסיס פרבולי B (kN/m^0.5)", value=1500.0, step=100.0)
+B_parab = st.sidebar.number_input("Parabolic Base Factor B (kN/m^0.5)", value=1500.0, step=100.0)
 else:
-default_base_table = st.data_editor(default_base_table, num_rows="dynamic", use_container_width=True, hide_index=True)
-with st.expander("📌 אופציונלי: הזנת נקודות מניסיון העמסה אמיתי להשוואה על הגרף"):
-field_test_df = st.data_editor(
-pd.DataFrame({
-"Measured Head Load P0 (kN)": [0.0, 400.0, 800.0, 1200.0, 1600.0],
-"Measured Head Settlement w0 (mm)": [0.0, 1.2, 3.1, 6.5, 14.0]
-}),
-num_rows="dynamic", use_container_width=True, hide_index=True
-)
-st.markdown("---")
-st.header("3. נתוני שכבות הקרקע (ניתנים לעריכה)")
+st.sidebar.write("Edit Base Load Test Table:")
+default_base_table = st.sidebar.data_editor(default_base_table, num_rows="dynamic", hide_index=True)
+
+Main Panel
+
+st.subheader("1. Soil Layers Input Table (Editable)")
 edited_df = st.data_editor(
 default_layers,
 num_rows="dynamic",
@@ -372,10 +365,15 @@ required=True
 )
 }
 )
+with st.expander("Optional: Field Load Test Data for Comparison on Graph"):
+field_test_df = st.data_editor(
+pd.DataFrame({
+"Measured Head Load P0 (kN)": [0.0, 400.0, 800.0, 1200.0, 1600.0],
+"Measured Head Settlement w0 (mm)": [0.0, 1.2, 3.1, 6.5, 14.0]
+}),
+num_rows="dynamic", use_container_width=True, hide_index=True
+)
 layers_df = edited_df.dropna(subset=["Bottom Depth (m)", "Initial Pressuremeter σ'h (kPa)"]).sort_values(by="Bottom Depth (m)").reset_index(drop=True)
-
-#--- חישוב ותצוגת תוצאות ---
-
 if len(layers_df) > 0:
 res_zero_base = run_pile_model_from_base(layers_df, E, D, 0.0, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
 F_fric_at_zero_base = float(res_zero_base[4][0])
@@ -411,10 +409,10 @@ if wb > 0.02:
 step_wb = 0.002
 if wb > 0.10:
 step_wb = 0.005
-with col_results:
-st.header("4. ניתוח מצב הכלונס ותוצאות")
+st.markdown("---")
+st.subheader("2. Pile Performance Evaluation")
 target_P0 = st.slider(
-"בחר עומס לבדיקה מפורטת בראש הכלונס P0 (kN) [10 kN ≈ 1 ton]:",
+"Select Head Load P0 (kN) [10 kN ≈ 1 ton]:",
 min_value=0.0,
 max_value=float(P_max_user),
 value=min(round(F_fric_at_zero_base * 0.9, 1), float(P_max_user)),
@@ -475,7 +473,7 @@ ax_a.grid(True, linestyle="--", alpha=0.5)
 ax_a.legend(fontsize=8)
 plt.tight_layout()
 st.pyplot(fig_ls)
-tab1, tab2 = st.tabs(["📉 Depth Profiles (Disp, Shear, Axial Load)", "📋 Detailed Layer Table & CSV Export"])
+tab1, tab2 = st.tabs(["Depth Profiles (Disp, Shear, Axial Load)", "Detailed Layer Table & CSV Export"])
 with tab1:
 fig_prof, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 4.3))
 mid_depths = [0.5 * (depths[i] + depths[i + 1]) for i in range(len(layers_df))]
@@ -530,8 +528,8 @@ st.dataframe(results_df.style.format({
 }), use_container_width=True, hide_index=True)
 csv_out = results_df.to_csv(index=False).encode("utf-8-sig")
 st.download_button(
-label="📥 Download Full Results Report (CSV)",
+label="Download Full Results Report (CSV)",
 data=csv_out,
-file_name=f"pile_analysis_V9_3_D{D}.csv",
+file_name=f"pile_analysis_V10_D{D}.csv",
 mime="text/csv"
 )
