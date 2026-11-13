@@ -448,101 +448,94 @@ else:
         f"Total = {w_total_node[0] * 1000:.2f} mm"
     )
     c_vis, c_curve = st.columns([1.0, 1.45])
-    with c_vis:
-    fig_soil = plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base)
-    st.pyplot(fig_soil)
+fig_soil = plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base)
+c_vis.pyplot(fig_soil)
 
-with c_curve:
-    fig_ls, ax_a = plt.subplots(figsize=(6.8, 5.2))
-    ax_a.plot(w0_tot_list, P0_list, label="Model: Total Disp (w_total)", color="#1f497d", linewidth=2.4)
-    ax_a.plot(w0_el_list, P0_list, "--", label="Model: Elastic Shortening (w_elastic)", color="#2e75b6")
-    ax_a.plot(w0_fr_list, P0_list, "-.", label="Model: Friction/Base Disp (w_fric)", color="#e67e22")
+fig_ls, ax_a = plt.subplots(figsize=(6.8, 5.2))
+ax_a.plot(w0_tot_list, P0_list, label="Model: Total Disp (w_total)", color="#1f497d", linewidth=2.4)
+ax_a.plot(w0_el_list, P0_list, "--", label="Model: Elastic Shortening (w_elastic)", color="#2e75b6")
+ax_a.plot(w0_fr_list, P0_list, "-.", label="Model: Friction/Base Disp (w_fric)", color="#e67e22")
 
-    clean_field = field_test_df.dropna()
-    if len(clean_field) > 0:
-        ax_a.plot(
-            clean_field["Measured Head Settlement w0 (mm)"],
-            clean_field["Measured Head Load P0 (kN)"],
-            "o-", color="#8e44ad", linewidth=1.8, markersize=6, label="Field Load Test (Measured)"
-        )
+clean_field = field_test_df.dropna()
+if len(clean_field) > 0:
+    ax_a.plot(clean_field["Measured Head Settlement w0 (mm)"], clean_field["Measured Head Load P0 (kN)"], "o-", color="#8e44ad", linewidth=1.8, markersize=6, label="Field Load Test (Measured)")
 
-    ax_a.axhline(F_fric_at_zero_base, color="green", linestyle=":", label=f"Friction Limit q_base=0 ({F_fric_at_zero_base:.0f} kN)")
-    ax_a.scatter([w_total_node * 1000.0], [P_node], color="red", s=80, zorder=6, label="Current Evaluation Point")
+ax_a.axhline(F_fric_at_zero_base, color="green", linestyle=":", label=f"Friction Limit q_base=0 ({F_fric_at_zero_base:.0f} kN)")
+ax_a.scatter([w_total_node * 1000.0], [P_node], color="red", s=80, zorder=6, label="Current Evaluation Point")
 
-    ax_a.set_ylim(0, P_max_user * 1.05)
-    ax_a.set_xlabel("Pile Head Settlement w0 (mm)")
-    ax_a.set_ylabel("Pile Head Load P0 (kN)")
-    ax_a.set_title(f"Load-Settlement Curve (0 to {P_max_user:,.0f} kN)")
-    ax_a.grid(True, linestyle="--", alpha=0.5)
-    ax_a.legend(fontsize=8)
-    plt.tight_layout()
-    st.pyplot(fig_ls)
+ax_a.set_ylim(0, P_max_user * 1.05)
+ax_a.set_xlabel("Pile Head Settlement w0 (mm)")
+ax_a.set_ylabel("Pile Head Load P0 (kN)")
+ax_a.set_title(f"Load-Settlement Curve (0 to {P_max_user:,.0f} kN)")
+ax_a.grid(True, linestyle="--", alpha=0.5)
+ax_a.legend(fontsize=8)
+plt.tight_layout()
+c_curve.pyplot(fig_ls)
 
 tab1, tab2 = st.tabs(["Depth Profiles (Disp, Shear, Axial Load)", "Detailed Layer Table & CSV Export"])
 
-with tab1:
-    fig_prof, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 4.3))
-    mid_depths = [0.5 * (depths[i] + depths[i + 1]) for i in range(len(layers_df))]
+fig_prof, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 4.3))
+mid_depths = [0.5 * (depths[i] + depths[i + 1]) for i in range(len(layers_df))]
 
-    ax1.plot(w_total_node * 1000.0, depths, marker="o", label="Total", color="#1f497d")
-    ax1.plot(w_elastic_node * 1000.0, depths, "--", label="Elastic", color="#2e75b6")
-    ax1.plot(w_fric_node * 1000.0, depths, "-.", label="Friction/Base", color="#e67e22")
-    ax1.set_title("Displacement Profile (mm)")
-    ax1.set_xlabel("Displacement (mm)")
-    ax1.set_ylabel("Depth (m)")
-    ax1.invert_yaxis()
-    ax1.legend(fontsize=8)
-    ax1.grid(True, linestyle="--", alpha=0.5)
+ax1.plot(w_total_node * 1000.0, depths, marker="o", label="Total", color="#1f497d")
+ax1.plot(w_elastic_node * 1000.0, depths, "--", label="Elastic", color="#2e75b6")
+ax1.plot(w_fric_node * 1000.0, depths, "-.", label="Friction/Base", color="#e67e22")
+ax1.set_title("Displacement Profile (mm)")
+ax1.set_xlabel("Displacement (mm)")
+ax1.set_ylabel("Depth (m)")
+ax1.invert_yaxis()
+ax1.legend(fontsize=8)
+ax1.grid(True, linestyle="--", alpha=0.5)
 
-    ax2.plot(t_peak_seg, mid_depths, "--", label="Peak", color="gray")
-    ax2.plot(t_res_seg, mid_depths, ":", label="Residual", color="red")
-    ax2.plot(t_mob_seg, mid_depths, marker="s", label="Mobilized", color="#27ae60")
-    ax2.set_title("Shear Stress Profile (kPa)")
-    ax2.set_xlabel("Shear Stress (kPa)")
-    ax2.invert_yaxis()
-    ax2.legend(fontsize=8)
-    ax2.grid(True, linestyle="--", alpha=0.5)
+ax2.plot(t_peak_seg, mid_depths, "--", label="Peak", color="gray")
+ax2.plot(t_res_seg, mid_depths, ":", label="Residual", color="red")
+ax2.plot(t_mob_seg, mid_depths, marker="s", label="Mobilized", color="#27ae60")
+ax2.set_title("Shear Stress Profile (kPa)")
+ax2.set_xlabel("Shear Stress (kPa)")
+ax2.invert_yaxis()
+ax2.legend(fontsize=8)
+ax2.grid(True, linestyle="--", alpha=0.5)
 
-    ax3.plot(P_node, depths, marker="^", color="#8e44ad")
-    ax3.set_title("Axial Load Distribution (kN)")
-    ax3.set_xlabel("Axial Load (kN)")
-    ax3.invert_yaxis()
-    ax3.grid(True, linestyle="--", alpha=0.5)
+ax3.plot(P_node, depths, marker="^", color="#8e44ad")
+ax3.set_title("Axial Load Distribution (kN)")
+ax3.set_xlabel("Axial Load (kN)")
+ax3.invert_yaxis()
+ax3.grid(True, linestyle="--", alpha=0.5)
 
-    plt.tight_layout()
-    st.pyplot(fig_prof)
+plt.tight_layout()
+tab1.pyplot(fig_prof)
 
-with tab2:
-    results_df = pd.DataFrame({
-        "Layer": range(1, len(layers_df) + 1),
-        "Soil Type": layers_df["Soil Type"],
-        "Depth (m)": [f"{depths[i]:.1f} - {depths[i+1]:.1f}" for i in range(len(layers_df))],
-        "Total Disp (mm)": w_total_node[:-1] * 1000.0,
-        "Elastic Shortening (mm)": dw_elastic_seg * 1000.0,
-        "Friction Disp (mm)": w_fric_node[:-1] * 1000.0,
-        "Peak Shear (kPa)": t_peak_seg,
-        "Residual Shear (kPa)": t_res_seg,
-        "Mobilized Shear (kPa)": t_mob_seg,
-        "Layer Friction (kN)": F_fric_seg,
-        "Axial Load at Top (kN)": P_node[:-1],
-        "State": state_seg
-    })
+results_df = pd.DataFrame({
+    "Layer": range(1, len(layers_df) + 1),
+    "Soil Type": layers_df["Soil Type"],
+    "Depth (m)": [f"{depths[i]:.1f} - {depths[i+1]:.1f}" for i in range(len(layers_df))],
+    "Total Disp (mm)": w_total_node[:-1] * 1000.0,
+    "Elastic Shortening (mm)": dw_elastic_seg * 1000.0,
+    "Friction Disp (mm)": w_fric_node[:-1] * 1000.0,
+    "Peak Shear (kPa)": t_peak_seg,
+    "Residual Shear (kPa)": t_res_seg,
+    "Mobilized Shear (kPa)": t_mob_seg,
+    "Layer Friction (kN)": F_fric_seg,
+    "Axial Load at Top (kN)": P_node[:-1],
+    "State": state_seg
+})
 
-    st.dataframe(results_df.style.format({
-        "Total Disp (mm)": "{:.2f}",
-        "Elastic Shortening (mm)": "{:.2f}",
-        "Friction Disp (mm)": "{:.2f}",
-        "Peak Shear (kPa)": "{:.1f}",
-        "Residual Shear (kPa)": "{:.1f}",
-        "Mobilized Shear (kPa)": "{:.1f}",
-        "Layer Friction (kN)": "{:.1f}",
-        "Axial Load at Top (kN)": "{:,.1f}"
-    }), use_container_width=True, hide_index=True)
+tab2.dataframe(results_df.style.format({
+    "Total Disp (mm)": "{:.2f}",
+    "Elastic Shortening (mm)": "{:.2f}",
+    "Friction Disp (mm)": "{:.2f}",
+    "Peak Shear (kPa)": "{:.1f}",
+    "Residual Shear (kPa)": "{:.1f}",
+    "Mobilized Shear (kPa)": "{:.1f}",
+    "Layer Friction (kN)": "{:.1f}",
+    "Axial Load at Top (kN)": "{:,.1f}"
+}), use_container_width=True, hide_index=True)
 
-    csv_out = results_df.to_csv(index=False).encode("utf-8-sig")
-    st.download_button(
-        label="Download Full Results Report (CSV)",
-        data=csv_out,
-        file_name=f"pile_analysis_V10_D{D}.csv",
-        mime="text/csv"
+csv_out = results_df.to_csv(index=False).encode("utf-8-sig")
+tab2.download_button(
+    label="Download Full Results Report (CSV)",
+    data=csv_out,
+    file_name=f"pile_analysis_V10_D{D}.csv",
+    mime="text/csv"
+)
     )
