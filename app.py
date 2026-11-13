@@ -388,7 +388,7 @@ for p_val in partial_loads:
     w0_fr_list.append(float(wf[0] * 1000.0))
     Pbase_list.append(0.0)
     cum_fric_list.append(float(cf[-1]))
-    if P_max_user > F_fric_at_zero_base:
+if P_max_user > F_fric_at_zero_base:
     wb = 0.0002
     step_wb = 0.0005
 for _ in range(300):
