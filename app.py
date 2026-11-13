@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-st.set_page_config(page_title="מודל כלונס גיאומכני מלא V9.2", layout="wide")
+st.set_page_config(page_title="Pile Geomechanical Model V9.3", layout="wide")
 st.title("🏗️ מודל גיאומכני רב-שכבתי לכלונס – חתך שכבות באנגלית והשוואה לניסיון העמסה")
 st.markdown("---")
 
@@ -21,34 +21,32 @@ SOIL_COLORS = {
 
 def calc_shear_stress(w, t_peak, t_res, w_p, w_r):
     if w <= 1e-9 or t_peak <= 0:
-        return 0.0, "ללא תזוזה"
-    elif w <= w_p:
-        return (t_peak / w_p) * w, "אלסטי"
-    elif w <= w_r:
+        return 0.0, "No Displacement"
+    if w <= w_p:
+        return (t_peak / w_p) * w, "Elastic"
+    if w <= w_r:
         slope = (t_peak - t_res) / max((w_r - w_p), 1e-6)
-        return t_peak - slope * (w - w_p), "ריכוך"
-    else:
-        return t_res, "משתייר"
+        return t_peak - slope * (w - w_p), "Softening"
+    return t_res, "Residual"
 
 def calc_base_load(w_base_m, base_model_type, A, B_parab, q_ult_hyp, k_init_hyp, base_table_df):
     if w_base_m <= 1e-9:
         return 0.0
-    if base_model_type == "פרבולי (B * sqrt(w))":
+    if base_model_type == "Parabolic (B * sqrt(w))":
         return B_parab * np.sqrt(w_base_m)
-    elif base_model_type == "היפרבולי (ניסיון העמסה קלאסי)":
+    if base_model_type == "Hyperbolic (Classic Load Test)":
         q_b = w_base_m / ((1.0 / max(k_init_hyp, 1.0)) + (w_base_m / max(q_ult_hyp, 1.0)))
         return q_b * A
-    else:
-        df_sorted = base_table_df.dropna().sort_values(by="שקיעת בסיס (mm)")
-        w_mm_arr = df_sorted["שקיעת בסיס (mm)"].values
-        p_kn_arr = df_sorted["עומס בקצה (kN)"].values
-        return float(np.interp(w_base_m * 1000.0, w_mm_arr, p_kn_arr))
+    df_sorted = base_table_df.dropna().sort_values(by="Base Settlement (mm)")
+    w_mm_arr = df_sorted["Base Settlement (mm)"].values
+    p_kn_arr = df_sorted["Base Load (kN)"].values
+    return float(np.interp(w_base_m * 1000.0, w_mm_arr, p_kn_arr))
 
 def run_pile_model_from_base(layers_df, E, D, w_base_m, base_model_type, B_parab, q_ult_hyp, k_init_hyp, base_table_df):
     A = np.pi * (D ** 2) / 4.0
     U = np.pi * D
     num_layers = len(layers_df)
-    depths = [0.0] + layers_df["עומק תחתית שכבה (m)"].tolist()
+    depths = [0.0] + layers_df["Bottom Depth (m)"].tolist()
 
     w_total_node = np.zeros(num_layers + 1)
     w_elastic_node = np.zeros(num_layers + 1)
@@ -69,11 +67,11 @@ def run_pile_model_from_base(layers_df, E, D, w_base_m, base_model_type, B_parab
 
     for i in range(num_layers - 1, -1, -1):
         dz = max(depths[i + 1] - depths[i], 0.01)
-        sig_h = layers_df.loc[i, "לחץ פרסיומטר התחלתי σ'h (kPa)"]
-        d_peak = layers_df.loc[i, "זווית חיכוך שיא δ_peak (°)"]
-        w_p = layers_df.loc[i, "תזוזת שיא w_peak (mm)"] / 1000.0
-        d_res = layers_df.loc[i, "זווית משתיירת δ_res (°)"]
-        w_r = layers_df.loc[i, "תזוזת התייצבות w_res (mm)"] / 1000.0
+        sig_h = layers_df.loc[i, "Initial Pressuremeter σ'h (kPa)"]
+        d_peak = layers_df.loc[i, "Peak Friction δ_peak (°)"]
+        w_p = layers_df.loc[i, "Peak Disp w_peak (mm)"] / 1000.0
+        d_res = layers_df.loc[i, "Residual Friction δ_res (°)"]
+        w_r = layers_df.loc[i, "Residual Disp w_res (mm)"] / 1000.0
 
         t_p = sig_h * np.tan(np.radians(d_peak))
         t_r = sig_h * np.tan(np.radians(d_res))
@@ -111,14 +109,14 @@ def run_pile_model_from_base(layers_df, E, D, w_base_m, base_model_type, B_parab
 def run_pile_model_partial_load(layers_df, E, D, target_P0):
     A = np.pi * (D ** 2) / 4.0
     U = np.pi * D
-    depths = [0.0] + layers_df["עומק תחתית שכבה (m)"].tolist()
+    depths = [0.0] + layers_df["Bottom Depth (m)"].tolist()
     n_s = len(layers_df)
 
     if target_P0 <= 1e-6:
         return (
             depths, np.zeros(n_s + 1), np.zeros(n_s + 1), np.zeros(n_s + 1), np.zeros(n_s + 1),
             np.zeros(n_s), np.zeros(n_s), np.zeros(n_s), np.zeros(n_s), np.zeros(n_s),
-            np.zeros(n_s), 0.0, ["ללא תזוזה"] * n_s
+            np.zeros(n_s), 0.0, ["No Displacement"] * n_s
         )
 
     low_w, high_w = 0.0, 0.1
@@ -128,11 +126,11 @@ def run_pile_model_partial_load(layers_df, E, D, target_P0):
         P_curr = target_P0
         for idx in range(n_s):
             dz_s = max(depths[idx + 1] - depths[idx], 0.01)
-            sig_h = layers_df.loc[idx, "לחץ פרסיומטר התחלתי σ'h (kPa)"]
-            t_p = sig_h * np.tan(np.radians(layers_df.loc[idx, "זווית חיכוך שיא δ_peak (°)"]))
-            t_r = sig_h * np.tan(np.radians(layers_df.loc[idx, "זווית משתיירת δ_res (°)"]))
-            w_p = layers_df.loc[idx, "תזוזת שיא w_peak (mm)"] / 1000.0
-            w_r = layers_df.loc[idx, "תזוזת התייצבות w_res (mm)"] / 1000.0
+            sig_h = layers_df.loc[idx, "Initial Pressuremeter σ'h (kPa)"]
+            t_p = sig_h * np.tan(np.radians(layers_df.loc[idx, "Peak Friction δ_peak (°)"]))
+            t_r = sig_h * np.tan(np.radians(layers_df.loc[idx, "Residual Friction δ_res (°)"]))
+            w_p = layers_df.loc[idx, "Peak Disp w_peak (mm)"] / 1000.0
+            w_r = layers_df.loc[idx, "Residual Disp w_res (mm)"] / 1000.0
             tm, _ = calc_shear_stress(w_curr, t_p, t_r, w_p, w_r)
             ff = U * dz_s * tm
             P_next = max(P_curr - ff, 0.0)
@@ -153,19 +151,19 @@ def run_pile_model_partial_load(layers_df, E, D, target_P0):
     dw_elastic_seg = np.zeros(n_s)
     state_seg = [""] * n_s
 
-    w_total_node = 0.5 * (low_w + high_w)
-    P_node = target_P0
+    w_total_node[0] = 0.5 * (low_w + high_w)
+    P_node[0] = target_P0
 
     for idx in range(n_s):
         dz_s = max(depths[idx + 1] - depths[idx], 0.01)
-        sig_h = layers_df.loc[idx, "לחץ פרסיומטר התחלתי σ'h (kPa)"]
-        t_p = sig_h * np.tan(np.radians(layers_df.loc[idx, "זווית חיכוך שיא δ_peak (°)"]))
-        t_r = sig_h * np.tan(np.radians(layers_df.loc[idx, "זווית משתיירת δ_res (°)"]))
-        w_p = layers_df.loc[idx, "תזוזת שיא w_peak (mm)"] / 1000.0
-        w_r = layers_df.loc[idx, "תזוזת התייצבות w_res (mm)"] / 1000.0
+        sig_h = layers_df.loc[idx, "Initial Pressuremeter σ'h (kPa)"]
+        t_p = sig_h * np.tan(np.radians(layers_df.loc[idx, "Peak Friction δ_peak (°)"]))
+        t_r = sig_h * np.tan(np.radians(layers_df.loc[idx, "Residual Friction δ_res (°)"]))
+        w_p = layers_df.loc[idx, "Peak Disp w_peak (mm)"] / 1000.0
+        w_r = layers_df.loc[idx, "Residual Disp w_res (mm)"] / 1000.0
 
         if P_node[idx] <= 1e-6:
-            tm, st_txt = 0.0, "ללא תזוזה"
+            tm, st_txt = 0.0, "No Displacement"
             ff = 0.0
             P_node[idx + 1] = 0.0
             dw_el = 0.0
@@ -207,7 +205,7 @@ def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_
         z_top, z_bot = depths[i], depths[i + 1]
         dz = z_bot - z_top
         s_type = str(layers_df.loc[i, "Soil Type"]).strip()
-        sig_h = layers_df.loc[i, "לחץ פרסיומטר התחלתי σ'h (kPa)"]
+        sig_h = layers_df.loc[i, "Initial Pressuremeter σ'h (kPa)"]
 
         color = SOIL_COLORS.get(s_type, fallback_colors[i % len(fallback_colors)])
         for key, val in SOIL_COLORS.items():
@@ -227,7 +225,7 @@ def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_
     ax.add_patch(rect_pile)
 
     ax.annotate(
-        f"P₀ = {P_node:,.0f} kN",
+        f"P0 = {P_node[0]:,.0f} kN",
         xy=(0, 0), xytext=(0, -max_depth * 0.12),
         ha="center", va="bottom", fontsize=9.5, fontweight="bold", color="#c0392b",
         arrowprops=dict(facecolor="#c0392b", edgecolor="#c0392b", width=2.5, headwidth=8)
@@ -243,27 +241,84 @@ def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_
     ax.set_xlim(-3.0, 3.0)
     ax.set_ylim(max_depth + max_depth * 0.18, -max_depth * 0.18)
     ax.set_xticks([])
-    ax.set_ylabel("עומק (m)")
-    ax.set_title(f"חתך כלונס (D = {D}m) ושכבות קרקע", fontsize=10.5, fontweight="bold")
+    ax.set_ylabel("Depth (m)")
+    ax.set_title(f"Pile Cross-Section (D = {D}m) & Soil Layers", fontsize=10.5, fontweight="bold")
     plt.tight_layout()
     return fig
 
-# --- ממשק קלט ---
-col_inputs, col_results = st.columns([1.25, 1.75])
+def build_preset_df(preset_name, f_peak, f_res):
+    presets = {
+        "Multi-layer (Fill, Silt, Marl, Clay, Dense Sand)": pd.DataFrame({
+            "Bottom Depth (m)": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+השתמש בקוד בזהירות.
+"Soil Type": ["Fill", "Fill", "Silt", "Silt", "Marl", "Marl", "Clay", "Dense Sand", "Dense Sand", "Dense Sand"],
+"Initial Pressuremeter σ'h (kPa)": [40.0, 45.0, 55.0, 65.0, 85.0, 95.0, 105.0, 130.0, 145.0, 160.0],
+"Peak Friction δ_peak (°)": [round(x * f_peak, 1) for x in [25.0, 25.0, 27.0, 27.0, 29.0, 29.0, 24.0, 35.8, 35.8, 35.8]],
+"Peak Disp w_peak (mm)": [4.0, 4.0, 3.5, 3.5, 3.0, 3.0, 3.0, 2.0, 2.0, 2.0],
+"Residual Friction δ_res (°)": [round(x * f_res, 1) for x in [24.0, 24.0, 23.0, 23.0, 22.0, 22.0, 16.0, 30.1, 30.1, 30.1]],
+"Residual Disp w_res (mm)": [9.0, 9.0, 8.5, 8.5, 9.0, 9.0, 10.0, 6.0, 6.0, 6.0]
+}),
+"Dense Sand": pd.DataFrame({
+"Bottom Depth (m)": [float(i) for i in range(1, 11)],
+"Soil Type": ["Dense Sand"] * 10,
+"Initial Pressuremeter σ'h (kPa)": [80.0 + i * 10.0 for i in range(10)],
+"Peak Friction δ_peak (°)": [round(35.8 * f_peak, 1)] * 10,
+"Peak Disp w_peak (mm)": [2.0] * 10,
+"Residual Friction δ_res (°)": [round(30.1 * f_res, 1)] * 10,
+"Residual Disp w_res (mm)": [6.0] * 10
+}),
+"Loose Sand": pd.DataFrame({
+"Bottom Depth (m)": [float(i) for i in range(1, 11)],
+"Soil Type": ["Loose Sand"] * 10,
+"Initial Pressuremeter σ'h (kPa)": [50.0 + i * 5.0 for i in range(10)],
+"Peak Friction δ_peak (°)": [round(28.0 * f_peak, 1)] * 10,
+"Peak Disp w_peak (mm)": [3.5] * 10,
+"Residual Friction δ_res (°)": [round(26.5 * f_res, 1)] * 10,
+"Residual Disp w_res (mm)": [8.0] * 10
+}),
+"Marl": pd.DataFrame({
+"Bottom Depth (m)": [float(i) for i in range(1, 11)],
+"Soil Type": ["Marl"] * 10,
+"Initial Pressuremeter σ'h (kPa)": [75.0 + i * 8.0 for i in range(10)],
+"Peak Friction δ_peak (°)": [round(29.0 * f_peak, 1)] * 10,
+"Peak Disp w_peak (mm)": [3.0] * 10,
+"Residual Friction δ_res (°)": [round(22.0 * f_res, 1)] * 10,
+"Residual Disp w_res (mm)": [9.0] * 10
+}),
+"Silt": pd.DataFrame({
+"Bottom Depth (m)": [float(i) for i in range(1, 11)],
+"Soil Type": ["Silt"] * 10,
+"Initial Pressuremeter σ'h (kPa)": [55.0 + i * 6.0 for i in range(10)],
+"Peak Friction δ_peak (°)": [round(27.0 * f_peak, 1)] * 10,
+"Peak Disp w_peak (mm)": [3.5] * 10,
+"Residual Friction δ_res (°)": [round(23.0 * f_res, 1)] * 10,
+"Residual Disp w_res (mm)": [8.5] * 10
+}),
+"Clay": pd.DataFrame({
+"Bottom Depth (m)": [float(i) for i in range(1, 11)],
+"Soil Type": ["Clay"] * 10,
+"Initial Pressuremeter σ'h (kPa)": [60.0 + i * 5.0 for i in range(10)],
+"Peak Friction δ_peak (°)": [round(24.0 * f_peak, 1)] * 10,
+"Peak Disp w_peak (mm)": [3.0] * 10,
+"Residual Friction δ_res (°)": [round(16.0 * f_res, 1)] * 10,
+"Residual Disp w_res (mm)": [10.0] * 10
+})
+}
+return presets[preset_name]
 
+--- ממשק קלט ---
+
+col_inputs, col_results = st.columns([1.25, 1.75])
 with col_inputs:
-    st.header("1. תכונות הכלונס וברירת מחדל")
-    c1, c2 = st.columns(2)
-    with c1:
-        pile_mat = st.selectbox("חומר הכלונס", ["בטון מחוספס", "פלדה / ברזל", "פלסטיק (HDPE)", "עץ"])
-default_E = {"בטון מחוספס": 30000000, "פלדה / ברזל": 210000000, "פלסטיק (HDPE)": 1500000, "עץ": 11000000}[pile_mat]
+st.header("1. תכונות הכלונס וברירת מחדל")
+pile_mat = st.selectbox("חומר הכלונס (Pile Material)", ["Concrete", "Steel", "HDPE Plastic", "Wood"])
+default_E = {"Concrete": 30000000, "Steel": 210000000, "HDPE Plastic": 1500000, "Wood": 11000000}[pile_mat]
 E = st.number_input("מודול אלסטיות E (kPa)", value=default_E, step=1000000)
-with c2:
-    D = st.number_input("קוטר הכלונס D (m)", min_value=0.2, max_value=3.0, value=0.6, step=0.05)
-    soil_preset = st.selectbox(
-"תבנית פרופיל קרקע להתחלה",
+D = st.number_input("קוטר הכלונס D (m)", min_value=0.2, max_value=3.0, value=0.6, step=0.05)
+soil_preset = st.selectbox(
+"תבנית פרופיל קרקע (Soil Profile Preset)",
 [
-"Multi-layer Profile (Fill, Silt, Marl, Clay, Dense Sand)",
+"Multi-layer (Fill, Silt, Marl, Clay, Dense Sand)",
 "Dense Sand",
 "Loose Sand",
 "Clay",
@@ -271,109 +326,35 @@ with c2:
 "Silt"
 ]
 )
-f_peak, f_res = {"בטון מחוספס": (1.0, 1.0), "פלדה / ברזל": (0.67, 0.76), "פלסטיק (HDPE)": (0.45, 0.55), "עץ": (0.85, 0.85)}[pile_mat]
-if soil_preset == "Multi-layer Profile (Fill, Silt, Marl, Clay, Dense Sand)":
-default_layers = pd.DataFrame({
-"עומק תחתית שכבה (m)": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
-"Soil Type": ["Fill", "Fill", "Silt", "Silt", "Marl", "Marl", "Clay", "Dense Sand", "Dense Sand", "Dense Sand"],
-"לחץ פרסיומטר התחלתי σ'h (kPa)": [40.0, 45.0, 55.0, 65.0, 85.0, 95.0, 105.0, 130.0, 145.0, 160.0],
-"זווית חיכוך שיא δ_peak (°)": [
-round(25.0 * f_peak, 1), round(25.0 * f_peak, 1),
-round(27.0 * f_peak, 1), round(27.0 * f_peak, 1),
-round(29.0 * f_peak, 1), round(29.0 * f_peak, 1),
-round(24.0 * f_peak, 1),
-round(35.8 * f_peak, 1), round(35.8 * f_peak, 1), round(35.8 * f_peak, 1)
-],
-"תזוזת שיא w_peak (mm)": [4.0, 4.0, 3.5, 3.5, 3.0, 3.0, 3.0, 2.0, 2.0, 2.0],
-"זווית משתיירת δ_res (°)": [
-round(24.0 * f_res, 1), round(24.0 * f_res, 1),
-round(23.0 * f_res, 1), round(23.0 * f_res, 1),
-round(22.0 * f_res, 1), round(22.0 * f_res, 1),
-round(16.0 * f_res, 1),
-round(30.1 * f_res, 1), round(30.1 * f_res, 1), round(30.1 * f_res, 1)
-],
-"תזוזת התייצבות w_res (mm)": [9.0, 9.0, 8.5, 8.5, 9.0, 9.0, 10.0, 6.0, 6.0, 6.0]
-})
-elif soil_preset == "Dense Sand":
-default_layers = pd.DataFrame({
-"עומק תחתית שכבה (m)": [float(i) for i in range(1, 11)],
-"Soil Type": ["Dense Sand"] * 10,
-"לחץ פרסיומטר התחלתי σ'h (kPa)": [80.0 + i * 10.0 for i in range(10)],
-"זווית חיכוך שיא δ_peak (°)": [round(35.8 * f_peak, 1)] * 10,
-"תזוזת שיא w_peak (mm)": [2.0] * 10,
-"זווית משתיירת δ_res (°)": [round(30.1 * f_res, 1)] * 10,
-"תזוזת התייצבות w_res (mm)": [6.0] * 10
-})
-elif soil_preset == "Loose Sand":
-default_layers = pd.DataFrame({
-"עומק תחתית שכבה (m)": [float(i) for i in range(1, 11)],
-"Soil Type": ["Loose Sand"] * 10,
-"לחץ פרסיומטר התחלתי σ'h (kPa)": [50.0 + i * 5.0 for i in range(10)],
-"זווית חיכוך שיא δ_peak (°)": [round(28.0 * f_peak, 1)] * 10,
-"תזוזת שיא w_peak (mm)": [3.5] * 10,
-"זווית משתיירת δ_res (°)": [round(26.5 * f_res, 1)] * 10,
-"תזוזת התייצבות w_res (mm)": [8.0] * 10
-})
-elif soil_preset == "Marl":
-default_layers = pd.DataFrame({
-"עומק תחתית שכבה (m)": [float(i) for i in range(1, 11)],
-"Soil Type": ["Marl"] * 10,
-"לחץ פרסיומטר התחלתי σ'h (kPa)": [75.0 + i * 8.0 for i in range(10)],
-"זווית חיכוך שיא δ_peak (°)": [round(29.0 * f_peak, 1)] * 10,
-"תזוזת שיא w_peak (mm)": [3.0] * 10,
-"זווית משתיירת δ_res (°)": [round(22.0 * f_res, 1)] * 10,
-"תזוזת התייצבות w_res (mm)": [9.0] * 10
-})
-elif soil_preset == "Silt":
-default_layers = pd.DataFrame({
-"עומק תחתית שכבה (m)": [float(i) for i in range(1, 11)],
-"Soil Type": ["Silt"] * 10,
-"לחץ פרסיומטר התחלתי σ'h (kPa)": [55.0 + i * 6.0 for i in range(10)],
-"זווית חיכוך שיא δ_peak (°)": [round(27.0 * f_peak, 1)] * 10,
-"תזוזת שיא w_peak (mm)": [3.5] * 10,
-"זווית משתיירת δ_res (°)": [round(23.0 * f_res, 1)] * 10,
-"תזוזת התייצבות w_res (mm)": [8.5] * 10
-})
-else:
-default_layers = pd.DataFrame({
-"עומק תחתית שכבה (m)": [float(i) for i in range(1, 11)],
-"Soil Type": ["Clay"] * 10,
-"לחץ פרסיומטר התחלתי σ'h (kPa)": [60.0 + i * 5.0 for i in range(10)],
-"זווית חיכוך שיא δ_peak (°)": [round(24.0 * f_peak, 1)] * 10,
-"תזוזת שיא w_peak (mm)": [3.0] * 10,
-"זווית משתיירת δ_res (°)": [round(16.0 * f_res, 1)] * 10,
-"תזוזת התייצבות w_res (mm)": [10.0] * 10
-})
+f_peak, f_res = {"Concrete": (1.0, 1.0), "Steel": (0.67, 0.76), "HDPE Plastic": (0.45, 0.55), "Wood": (0.85, 0.85)}[pile_mat]
+default_layers = build_preset_df(soil_preset, f_peak, f_res)
 st.markdown("---")
 st.header("2. טווח עומסים להשוואה ותגובת קצה")
 P_max_user = st.number_input(
-"עומס מקסימלי להצגה בגרף ניסיון העמסה P_max (kN):",
+"עומס מקסימלי להצגה בגרף P_max (kN):",
 min_value=100.0, max_value=50000.0, value=2500.0, step=100.0
 )
 base_model_type = st.radio(
 "מודל להתנהגות קצה הכלונס:",
-["היפרבולי (ניסיון העמסה קלאסי)", "פרבולי (B * sqrt(w))", "טבלת ניסיון העמסה חופשית (קלט מפעיל)"]
+["Hyperbolic (Classic Load Test)", "Parabolic (B * sqrt(w))", "Custom Load Test Table"]
 )
 B_parab, q_ult_hyp, k_init_hyp = 1500.0, 3500.0, 150000.0
 default_base_table = pd.DataFrame({
-"שקיעת בסיס (mm)": [0.0, 2.0, 5.0, 10.0, 20.0, 40.0, 80.0],
-"עומס בקצה (kN)": [0.0, 180.0, 380.0, 620.0, 900.0, 1150.0, 1300.0]
+"Base Settlement (mm)": [0.0, 2.0, 5.0, 10.0, 20.0, 40.0, 80.0],
+"Base Load (kN)": [0.0, 180.0, 380.0, 620.0, 900.0, 1150.0, 1300.0]
 })
-if base_model_type == "היפרבולי (ניסיון העמסה קלאסי)":
-cb1, cb2 = st.columns(2)
-with cb1:
+if base_model_type == "Hyperbolic (Classic Load Test)":
 q_ult_hyp = st.number_input("מאמץ קצה גבולי q_ult (kPa)", value=3500.0, step=250.0)
-with cb2:
 k_init_hyp = st.number_input("קשיחות קצה התחלתית k_init (kPa/m)", value=150000.0, step=10000.0)
-elif base_model_type == "פרבולי (B * sqrt(w))":
+elif base_model_type == "Parabolic (B * sqrt(w))":
 B_parab = st.number_input("מקדם קשיחות בסיס פרבולי B (kN/m^0.5)", value=1500.0, step=100.0)
 else:
 default_base_table = st.data_editor(default_base_table, num_rows="dynamic", use_container_width=True, hide_index=True)
 with st.expander("📌 אופציונלי: הזנת נקודות מניסיון העמסה אמיתי להשוואה על הגרף"):
 field_test_df = st.data_editor(
 pd.DataFrame({
-"עומס מדוד בראש P₀ (kN)": [0.0, 400.0, 800.0, 1200.0, 1600.0],
-"שקיעה מדודה בראש w₀ (mm)": [0.0, 1.2, 3.1, 6.5, 14.0]
+"Measured Head Load P0 (kN)": [0.0, 400.0, 800.0, 1200.0, 1600.0],
+"Measured Head Settlement w0 (mm)": [0.0, 1.2, 3.1, 6.5, 14.0]
 }),
 num_rows="dynamic", use_container_width=True, hide_index=True
 )
@@ -392,22 +373,22 @@ required=True
 )
 }
 )
-layers_df = edited_df.dropna(subset=["עומק תחתית שכבה (m)", "לחץ פרסיומטר התחלתי σ'h (kPa)"]).sort_values(by="עומק תחתית שכבה (m)").reset_index(drop=True)
+layers_df = edited_df.dropna(subset=["Bottom Depth (m)", "Initial Pressuremeter σ'h (kPa)"]).sort_values(by="Bottom Depth (m)").reset_index(drop=True)
 
 --- חישוב ותצוגת תוצאות ---
 
 if len(layers_df) > 0:
 res_zero_base = run_pile_model_from_base(layers_df, E, D, 0.0, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
-F_fric_at_zero_base = float(res_zero_base)
+F_fric_at_zero_base = float(res_zero_base[4][0])
 P0_list, w0_tot_list, w0_el_list, w0_fr_list, Pbase_list, cum_fric_list = [], [], [], [], [], []
 if F_fric_at_zero_base > 0:
 partial_loads = np.linspace(0.0, min(F_fric_at_zero_base, P_max_user), 35)
 for p_val in partial_loads:
 _, wt, we, wf, Pn, _, _, _, _, cf, _, _, _ = run_pile_model_partial_load(layers_df, E, D, p_val)
-P0_list.append(float(Pn))
-w0_tot_list.append(float(wt * 1000.0))
-w0_el_list.append(float(we * 1000.0))
-w0_fr_list.append(float(wf * 1000.0))
+P0_list.append(float(Pn[0]))
+w0_tot_list.append(float(wt[0] * 1000.0))
+w0_el_list.append(float(we[0] * 1000.0))
+w0_fr_list.append(float(wf[0] * 1000.0))
 Pbase_list.append(0.0)
 cum_fric_list.append(float(cf[-1]))
 if P_max_user > F_fric_at_zero_base:
@@ -417,11 +398,11 @@ for _ in range(300):
 _, wt, we, wf, Pn, _, _, _, _, cf, _, _, _ = run_pile_model_from_base(
 layers_df, E, D, wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
 )
-p_curr = float(Pn)
+p_curr = float(Pn[0])
 P0_list.append(p_curr)
-w0_tot_list.append(float(wt * 1000.0))
-w0_el_list.append(float(we * 1000.0))
-w0_fr_list.append(float(wf * 1000.0))
+w0_tot_list.append(float(wt[0] * 1000.0))
+w0_el_list.append(float(we[0] * 1000.0))
+w0_fr_list.append(float(wf[0] * 1000.0))
 Pbase_list.append(float(Pn[-1]))
 cum_fric_list.append(float(cf[-1]))
 if p_curr >= P_max_user or wb >= 0.5:
@@ -434,7 +415,7 @@ step_wb = 0.005
 with col_results:
 st.header("4. ניתוח מצב הכלונס ותוצאות")
 target_P0 = st.slider(
-"בחר עומס לבדיקה מפורטת בראש הכלונס P₀ (kN) [10 kN ≈ 1 טון]:",
+"בחר עומס לבדיקה מפורטת בראש הכלונס P0 (kN) [10 kN ≈ 1 ton]:",
 min_value=0.0,
 max_value=float(P_max_user),
 value=min(round(F_fric_at_zero_base * 0.9, 1), float(P_max_user)),
@@ -449,7 +430,7 @@ low_wb, high_wb = 0.0, 0.5
 for _ in range(50):
 mid_wb = 0.5 * (low_wb + high_wb)
 res_tmp = run_pile_model_from_base(layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
-if res_tmp < target_P0:
+if res_tmp[4][0] < target_P0:
 low_wb = mid_wb
 else:
 high_wb = mid_wb
@@ -459,15 +440,15 @@ dw_elastic_seg, q_base, state_seg) = run_pile_model_from_base(
 layers_df, E, D, 0.5 * (low_wb + high_wb), base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
 )
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("עומס בראש P₀", f"{P_node:,.1f} kN", f"{P_node/10.0:,.1f} טון")
-m2.metric("תזוזה טוטאלית בראש", f"{w_total_node*1000:.2f} mm")
-m3.metric("עומס בקצה P_base", f"{P_node[-1]:,.1f} kN", f"לחץ: {q_base:,.0f} kPa")
-m4.metric("גבול חיכוך ללא קצה (q_base=0)", f"{F_fric_at_zero_base:,.1f} kN")
+m1.metric("Head Load P0", f"{P_node[0]:,.1f} kN", f"{P_node[0]/10.0:,.1f} ton")
+m2.metric("Total Head Disp w0", f"{w_total_node[0]*1000:.2f} mm")
+m3.metric("Base Load P_base", f"{P_node[-1]:,.1f} kN", f"q_base: {q_base:,.0f} kPa")
+m4.metric("Max Friction (q_base=0)", f"{F_fric_at_zero_base:,.1f} kN")
 st.info(
-f"הפרדת תזוזות בראש הכלונס: "
-f"אלסטית = {w_elastic_node*1000:.2f} mm | "
-f"חיכוך/קרקע = {w_fric_node*1000:.2f} mm | "
-f"טוטאלית = {w_total_node*1000:.2f} mm"
+f"Head Displacement Breakdown: "
+f"Elastic = *{w_elastic_node[0]1000:.2f} mm | "
+f"Friction/Soil = *{w_fric_node[0]1000:.2f} mm | "
+f"Total = *{w_total_node[0]1000:.2f} mm"
 )
 c_vis, c_curve = st.columns([1.0, 1.45])
 with c_vis:
@@ -475,83 +456,83 @@ fig_soil = plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg,
 st.pyplot(fig_soil)
 with c_curve:
 fig_ls, ax_a = plt.subplots(figsize=(6.8, 5.2))
-ax_a.plot(w0_tot_list, P0_list, label="מודל: תזוזה טוטאלית (w_total)", color="#1f497d", linewidth=2.4)
-ax_a.plot(w0_el_list, P0_list, "--", label="מודל: התכווצות אלסטית (w_elastic)", color="#2e75b6")
-ax_a.plot(w0_fr_list, P0_list, "-.", label="מודל: תזוזת חיכוך/קרקע (w_fric)", color="#e67e22")
+ax_a.plot(w0_tot_list, P0_list, label="Model: Total Disp (w_total)", color="#1f497d", linewidth=2.4)
+ax_a.plot(w0_el_list, P0_list, "--", label="Model: Elastic Shortening (w_elastic)", color="#2e75b6")
+ax_a.plot(w0_fr_list, P0_list, "-.", label="Model: Friction/Base Disp (w_fric)", color="#e67e22")
 clean_field = field_test_df.dropna()
 if len(clean_field) > 0:
 ax_a.plot(
-clean_field["שקיעה מדודה בראש w₀ (mm)"],
-clean_field["עומס מדוד בראש P₀ (kN)"],
-"o-", color="#8e44ad", linewidth=1.8, markersize=6, label="ניסיון העמסה מדוד (שטח)"
+clean_field["Measured Head Settlement w0 (mm)"],
+clean_field["Measured Head Load P0 (kN)"],
+"o-", color="#8e44ad", linewidth=1.8, markersize=6, label="Field Load Test (Measured)"
 )
-ax_a.axhline(F_fric_at_zero_base, color="green", linestyle=":", label=f"גבול חיכוך ללא קצה ({F_fric_at_zero_base:.0f} kN)")
-ax_a.scatter([w_total_node * 1000.0], [P_node], color="red", s=80, zorder=6, label="נקודת בדיקה נוכחית")
+ax_a.axhline(F_fric_at_zero_base, color="green", linestyle=":", label=f"Friction Limit q_base=0 ({F_fric_at_zero_base:.0f} kN)")
+ax_a.scatter([w_total_node[0] * 1000.0], [P_node[0]], color="red", s=80, zorder=6, label="Current Evaluation Point")
 ax_a.set_ylim(0, P_max_user * 1.05)
-ax_a.set_xlabel("תזוזה בראש הכלונס w₀ (mm)")
-ax_a.set_ylabel("עומס בראש P₀ (kN)")
-ax_a.set_title(f"עקומת עומס-תזוזה מ-0 עד {P_max_user:,.0f} kN")
+ax_a.set_xlabel("Pile Head Settlement w0 (mm)")
+ax_a.set_ylabel("Pile Head Load P0 (kN)")
+ax_a.set_title(f"Load-Settlement Curve (0 to {P_max_user:,.0f} kN)")
 ax_a.grid(True, linestyle="--", alpha=0.5)
 ax_a.legend(fontsize=8)
 plt.tight_layout()
 st.pyplot(fig_ls)
-tab1, tab2 = st.tabs(["📉 פרופילי עומק (תזוזות, מאמצים וכוחות)", "📋 טבלת שכבות מפורטת וייצוא"])
+tab1, tab2 = st.tabs(["📉 Depth Profiles (Disp, Shear, Axial Load)", "📋 Detailed Layer Table & CSV Export"])
 with tab1:
 fig_prof, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 4.3))
 mid_depths = [0.5 * (depths[i] + depths[i + 1]) for i in range(len(layers_df))]
-ax1.plot(w_total_node * 1000.0, depths, marker="o", label="טוטאלית", color="#1f497d")
-ax1.plot(w_elastic_node * 1000.0, depths, "--", label="אלסטית", color="#2e75b6")
-ax1.plot(w_fric_node * 1000.0, depths, "-.", label="חיכוך/בסיס", color="#e67e22")
-ax1.set_title("פרופיל תזוזות (mm)")
-ax1.set_xlabel("תזוזה (mm)")
-ax1.set_ylabel("עומק (m)")
+ax1.plot(w_total_node * 1000.0, depths, marker="o", label="Total", color="#1f497d")
+ax1.plot(w_elastic_node * 1000.0, depths, "--", label="Elastic", color="#2e75b6")
+ax1.plot(w_fric_node * 1000.0, depths, "-.", label="Friction/Base", color="#e67e22")
+ax1.set_title("Displacement Profile (mm)")
+ax1.set_xlabel("Displacement (mm)")
+ax1.set_ylabel("Depth (m)")
 ax1.invert_yaxis()
 ax1.legend(fontsize=8)
 ax1.grid(True, linestyle="--", alpha=0.5)
-ax2.plot(t_peak_seg, mid_depths, "--", label="שיא", color="gray")
-ax2.plot(t_res_seg, mid_depths, ":", label="משתייר", color="red")
-ax2.plot(t_mob_seg, mid_depths, marker="s", label="בפועל", color="#27ae60")
-ax2.set_title("מאמצי חיכוך (kPa)")
-ax2.set_xlabel("מאמץ גזירה (kPa)")
+ax2.plot(t_peak_seg, mid_depths, "--", label="Peak", color="gray")
+ax2.plot(t_res_seg, mid_depths, ":", label="Residual", color="red")
+ax2.plot(t_mob_seg, mid_depths, marker="s", label="Mobilized", color="#27ae60")
+ax2.set_title("Shear Stress Profile (kPa)")
+ax2.set_xlabel("Shear Stress (kPa)")
 ax2.invert_yaxis()
 ax2.legend(fontsize=8)
 ax2.grid(True, linestyle="--", alpha=0.5)
 ax3.plot(P_node, depths, marker="^", color="#8e44ad")
-ax3.set_title("כוח צירי לאורך הכלונס (kN)")
-ax3.set_xlabel("כוח צירי (kN)")
+ax3.set_title("Axial Load Distribution (kN)")
+ax3.set_xlabel("Axial Load (kN)")
 ax3.invert_yaxis()
 ax3.grid(True, linestyle="--", alpha=0.5)
 plt.tight_layout()
 st.pyplot(fig_prof)
 with tab2:
 results_df = pd.DataFrame({
-"שכבה": range(1, len(layers_df) + 1),
+"Layer": range(1, len(layers_df) + 1),
 "Soil Type": layers_df["Soil Type"],
-"עומק (m)": [f"{depths[i]:.1f} - {depths[i+1]:.1f}" for i in range(len(layers_df))],
-"תזוזה טוטאלית (mm)": w_total_node[:-1] * 1000.0,
-"התכווצות אלסטית (mm)": dw_elastic_seg * 1000.0,
-"תזוזת חיכוך/ממשק (mm)": w_fric_node[:-1] * 1000.0,
-"מאמץ שיא (kPa)": t_peak_seg,
-"מאמץ משתייר (kPa)": t_res_seg,
-"מאמץ בפועל (kPa)": t_mob_seg,
-"כוח חיכוך שכבה (kN)": F_fric_seg,
-"כוח צירי בראש שכבה (kN)": P_node[:-1],
-"מצב השכבה": state_seg
+"Depth (m)": [f"{depths[i]:.1f} - {depths[i+1]:.1f}" for i in range(len(layers_df))],
+"Total Disp (mm)": w_total_node[:-1] * 1000.0,
+"Elastic Shortening (mm)": dw_elastic_seg * 1000.0,
+"Friction Disp (mm)": w_fric_node[:-1] * 1000.0,
+"Peak Shear (kPa)": t_peak_seg,
+"Residual Shear (kPa)": t_res_seg,
+"Mobilized Shear (kPa)": t_mob_seg,
+"Layer Friction (kN)": F_fric_seg,
+"Axial Load at Top (kN)": P_node[:-1],
+"State": state_seg
 })
 st.dataframe(results_df.style.format({
-"תזוזה טוטאלית (mm)": "{:.2f}",
-"התכווצות אלסטית (mm)": "{:.2f}",
-"תזוזת חיכוך/ממשק (mm)": "{:.2f}",
-"מאמץ שיא (kPa)": "{:.1f}",
-"מאמץ משתייר (kPa)": "{:.1f}",
-"מאמץ בפועל (kPa)": "{:.1f}",
-"כוח חיכוך שכבה (kN)": "{:.1f}",
-"כוח צירי בראש שכבה (kN)": "{:,.1f}"
+"Total Disp (mm)": "{:.2f}",
+"Elastic Shortening (mm)": "{:.2f}",
+"Friction Disp (mm)": "{:.2f}",
+"Peak Shear (kPa)": "{:.1f}",
+"Residual Shear (kPa)": "{:.1f}",
+"Mobilized Shear (kPa)": "{:.1f}",
+"Layer Friction (kN)": "{:.1f}",
+"Axial Load at Top (kN)": "{:,.1f}"
 }), use_container_width=True, hide_index=True)
 csv_out = results_df.to_csv(index=False).encode("utf-8-sig")
 st.download_button(
-label="📥 הורד דוח תוצאות מלא לאקסל (CSV)",
+label="📥 Download Full Results Report (CSV)",
 data=csv_out,
-file_name=f"pile_analysis_V9_D{D}.csv",
+file_name=f"pile_analysis_V9_3_D{D}.csv",
 mime="text/csv"
 )
