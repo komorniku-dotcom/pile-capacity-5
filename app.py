@@ -250,7 +250,6 @@ def build_preset_df(preset_name, f_peak, f_res):
     presets = {
         "Multi-layer (Fill, Silt, Marl, Clay, Dense Sand)": pd.DataFrame({
             "Bottom Depth (m)": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
-השתמש בקוד בזהירות.
 "Soil Type": ["Fill", "Fill", "Silt", "Silt", "Marl", "Marl", "Clay", "Dense Sand", "Dense Sand", "Dense Sand"],
 "Initial Pressuremeter σ'h (kPa)": [40.0, 45.0, 55.0, 65.0, 85.0, 95.0, 105.0, 130.0, 145.0, 160.0],
 "Peak Friction δ_peak (°)": [round(x * f_peak, 1) for x in [25.0, 25.0, 27.0, 27.0, 29.0, 29.0, 24.0, 35.8, 35.8, 35.8]],
