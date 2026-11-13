@@ -411,7 +411,6 @@ if P_max_user > F_fric_at_zero_base:
     max_value=float(P_max_user),
     value=min(round(F_fric_at_zero_base * 0.9, 1), float(P_max_user)),
     step=10.0
-    )
 if target_P0 <= F_fric_at_zero_base:
     (depths, w_total_node, w_elastic_node, w_fric_node, P_node,
     t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
