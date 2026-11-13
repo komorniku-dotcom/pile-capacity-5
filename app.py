@@ -422,14 +422,14 @@ if target_P0 <= F_fric_at_zero_base:
     (depths, w_total_node, w_elastic_node, w_fric_node, P_node,
     t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
     dw_elastic_seg, q_base, state_seg) = run_pile_model_partial_load(layers_df, E, D, target_P0)
-    else:
+else:
     low_wb, high_wb = 0.0, 0.5
     for _ in range(50):
     mid_wb = 0.5 * (low_wb + high_wb)
     res_tmp = run_pile_model_from_base(layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
 if res_tmp[4][0] < target_P0:
     low_wb = mid_wb
-    else:
+else:
     high_wb = mid_wb
     (depths, w_total_node, w_elastic_node, w_fric_node, P_node,
     t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
