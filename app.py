@@ -391,28 +391,22 @@ for p_val in partial_loads:
 if P_max_user > F_fric_at_zero_base:
     wb = 0.0002
     step_wb = 0.0005
-for _ in range(300):
-    _, wt, we, wf, Pn, _, _, _, _, cf, _, _, _ = run_pile_model_from_base(
-    layers_df, E, D, wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
-    )
-    p_curr = float(Pn[0])
-    P0_list.append(p_curr)
-    w0_tot_list.append(float(wt[0] * 1000.0))
-    w0_el_list.append(float(we[0] * 1000.0))
-    w0_fr_list.append(float(wf[0] * 1000.0))
-    Pbase_list.append(float(Pn[-1]))
-    cum_fric_list.append(float(cf[-1]))
-if p_curr >= P_max_user or wb >= 0.5:
-    break
-    wb += step_wb
-if wb > 0.02:
-    step_wb = 0.002
-if wb > 0.10:
-    step_wb = 0.005
-    st.markdown("---")
-    st.subheader("2. Pile Performance Evaluation")
-    target_P0 = st.slider(
-    "Select Head Load P0 (kN) [10 kN ≈ 1 ton]:",
+    for _ in range(300):
+        _, wt, we, wf, Pn, _, _, _, _, cf, _, _, _ = run_pile_model_from_base(layers_df, E, D, wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
+        p_curr = float(Pn)
+        P0_list.append(p_curr)
+        w0_tot_list.append(float(wt * 1000.0))
+        w0_el_list.append(float(we * 1000.0))
+        w0_fr_list.append(float(wf * 1000.0))
+        Pbase_list.append(float(Pn[-1]))
+        cum_fric_list.append(float(cf[-1]))
+        if p_curr >= P_max_user or wb >= 0.5:
+            break
+        wb += step_wb
+        if wb > 0.02:
+            step_wb = 0.002
+        if wb > 0.10:
+            step_wb = 0.005
     min_value=0.0,
     max_value=float(P_max_user),
     value=min(round(F_fric_at_zero_base * 0.9, 1), float(P_max_user)),
