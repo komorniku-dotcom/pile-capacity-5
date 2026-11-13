@@ -4,11 +4,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-st.set_page_config(page_title="מודל כלונס גיאומכני מלא V9", layout="wide")
-st.title("🏗️ מודל גיאומכני רב-שכבתי לכלונס – חתך שכבות באנגלית והשוואה לניסיון העמסה (V9)")
+st.set_page_config(page_title="מודל כלונס גיאומכני מלא V9.1", layout="wide")
+st.title("🏗️ מודל גיאומכני רב-שכבתי לכלונס – חתך שכבות באנגלית והשוואה לניסיון העמסה")
 st.markdown("---")
 
-# רשימת סוגי קרקע באנגלית וצבעים קבועים לכל קרקע
 SOIL_COLORS = {
     "Fill": "#d5d8dc",
     "Silt": "#d4efdf",
@@ -20,7 +19,6 @@ SOIL_COLORS = {
     "Rock": "#aeb6bf"
 }
 
-# 1. פונקציית חישוב מאמץ גזירה מקומי לפי עקומת t-z (אלסטי -> ריכוך -> משתייר)
 def calc_shear_stress(w, t_peak, t_res, w_p, w_r):
     if w <= 1e-9 or t_peak <= 0:
         return 0.0, "ללא תזוזה"
@@ -32,7 +30,6 @@ def calc_shear_stress(w, t_peak, t_res, w_p, w_r):
     else:
         return t_res, "משתייר"
 
-# 2. פונקציית חישוב התנגדות הקצה לפי השיטה שנבחרה
 def calc_base_load(w_base_m, base_model_type, A, B_parab, q_ult_hyp, k_init_hyp, base_table_df):
     if w_base_m <= 1e-9:
         return 0.0
@@ -47,9 +44,8 @@ def calc_base_load(w_base_m, base_model_type, A, B_parab, q_ult_hyp, k_init_hyp,
         p_kn_arr = df_sorted["עומס בקצה (kN)"].values
         return float(np.interp(w_base_m * 1000.0, w_mm_arr, p_kn_arr))
 
-# 3. אלגוריתם אינטגרציה מלמטה למעלה (עבור w_base >= 0)
 def run_pile_model_from_base(layers_df, E, D, w_base_m, base_model_type, B_parab, q_ult_hyp, k_init_hyp, base_table_df):
-    A = np.pi * (D**2) / 4.0
+    A = np.pi * (D ** 2) / 4.0
     U = np.pi * D
     num_layers = len(layers_df)
     depths = [0.0] + layers_df["עומק תחתית שכבה (מ')"].tolist()
@@ -112,9 +108,8 @@ def run_pile_model_from_base(layers_df, E, D, w_base_m, base_model_type, B_parab
         dw_elastic_seg, q_base, state_seg
     )
 
-# 4. פתרון מלמעלה למטה עבור שלב ראשוני שבו העומס טרם הגיע לבסיס (P_base = 0)
 def run_pile_model_partial_load(layers_df, E, D, target_P0):
-    A = np.pi * (D**2) / 4.0
+    A = np.pi * (D ** 2) / 4.0
     U = np.pi * D
     depths = [0.0] + layers_df["עומק תחתית שכבה (מ')"].tolist()
     n_s = len(layers_df)
@@ -203,7 +198,6 @@ def run_pile_model_partial_load(layers_df, E, D, target_P0):
         dw_elastic_seg, 0.0, state_seg
     )
 
-# 5. פונקציית ציור חתך הכלונס ושכבות הקרקע בצבעים ושמות באנגלית
 def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base):
     fig, ax = plt.subplots(figsize=(5.6, 6.2))
     max_depth = depths[-1]
@@ -225,17 +219,13 @@ def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_
         ax.add_patch(rect_soil)
 
         z_mid = 0.5 * (z_top + z_bot)
-        # כיתוב בצד שמאל באנגלית: שם הקרקע ולחץ פרסיומטר
         ax.text(-2.85, z_mid, f"{s_type}\nσ'h = {sig_h:.0f} kPa", va="center", ha="left", fontsize=8.5, fontweight="bold", color="#2c3e50")
-        # כיתוב בצד ימין: מאמץ מגויס ומצב השכבה
         ax.text(2.85, z_mid, f"t = {t_mob_seg[i]:.1f} kPa\n[{state_seg[i]}]", va="center", ha="right", fontsize=8, color="#1a5276")
 
-    # ציור גוף הכלונס במרכז
     pile_half_w = 0.45
     rect_pile = patches.Rectangle((-pile_half_w, 0.0), pile_half_w * 2, max_depth, facecolor="#7f8c8d", edgecolor="#2c3e50", linewidth=2, zorder=4)
     ax.add_patch(rect_pile)
 
-    # חץ עומס בראש הכלונס
     ax.annotate(
         f"P₀ = {P_node[0]:,.0f} kN",
         xy=(0, 0), xytext=(0, -max_depth * 0.12),
@@ -243,29 +233,28 @@ def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_
         arrowprops=dict(facecolor="#c0392b", edgecolor="#c0392b", width=2.5, headwidth=8)
     )
 
-    # חץ התנגדות בקצה הכלונס
     ax.annotate(
         f"P_base = {P_node[-1]:,.0f} kN (q = {q_base:,.0f} kPa)",
         xy=(0, max_depth), xytext=(0, max_depth + max_depth * 0.13),
         ha="center", va="top", fontsize=8.5, fontweight="bold", color="#117864",
-השתמש בקוד בזהירות.
-arrowprops=dict(facecolor="#117864", edgecolor="#117864", width=2, headwidth=7)
-)
-ax.set_xlim(-3.0, 3.0)
-ax.set_ylim(max_depth + max_depth * 0.18, -max_depth * 0.18)
-ax.set_xticks([])
-ax.set_ylabel("עומק (מטר)")
-ax.set_title(f"חתך כלונס (D = {D}m) ושכבות קרקע", fontsize=10.5, fontweight="bold")
-plt.tight_layout()
-return fig
+        arrowprops=dict(facecolor="#117864", edgecolor="#117864", width=2, headwidth=7)
+    )
 
---- ממשק קלט ---
+    ax.set_xlim(-3.0, 3.0)
+    ax.set_ylim(max_depth + max_depth * 0.18, -max_depth * 0.18)
+    ax.set_xticks([])
+    ax.set_ylabel("עומק (מטר)")
+    ax.set_title(f"חתך כלונס (D = {D}m) ושכבות קרקע", fontsize=10.5, fontweight="bold")
+    plt.tight_layout()
+    return fig
 
+# --- ממשק קלט ---
 col_inputs, col_results = st.columns([1.25, 1.75])
+
 with col_inputs:
-st.header("1. תכונות הכלונס וברירת מחדל")
-c1, c2 = st.columns(2)
-with c1:
+    st.header("1. תכונות הכלונס וברירת מחדל")
+    c1, c2 = st.columns(2)
+    with c1:
 pile_mat = st.selectbox("חומר הכלונס", ["בטון מחוספס", "פלדה / ברזל", "פלסטיק (HDPE)", "עץ"])
 default_E = {"בטון מחוספס": 30000000, "פלדה / ברזל": 210000000, "פלסטיק (HDPE)": 1500000, "עץ": 11000000}[pile_mat]
 E = st.number_input("מודול אלסטיות E (kPa)", value=default_E, step=1000000)
@@ -282,25 +271,37 @@ soil_preset = st.selectbox(
 "Silt"
 ]
 )
-mat_factor = {"בטון מחוספס": (1.0, 1.0), "פלדה / ברזל": (0.67, 0.76), "פלסטיק (HDPE)": (0.45, 0.55), "עץ": (0.85, 0.85)}[pile_mat]
+f_peak, f_res = {"בטון מחוספס": (1.0, 1.0), "פלדה / ברזל": (0.67, 0.76), "פלסטיק (HDPE)": (0.45, 0.55), "עץ": (0.85, 0.85)}[pile_mat]
 if soil_preset == "Multi-layer Profile (Fill, Silt, Marl, Clay, Dense Sand)":
 default_layers = pd.DataFrame({
 "עומק תחתית שכבה (מ')": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
 "Soil Type": ["Fill", "Fill", "Silt", "Silt", "Marl", "Marl", "Clay", "Dense Sand", "Dense Sand", "Dense Sand"],
 "לחץ פרסיומטר התחלתי σ'h (kPa)": [40.0, 45.0, 55.0, 65.0, 85.0, 95.0, 105.0, 130.0, 145.0, 160.0],
-"זווית חיכוך שיא δ_peak (°)": [round(25.0mat_factor[0], 1)]2 + [round(27.0mat_factor[0], 1)]2 + [round(29.0mat_factor[0], 1)]2 + [round(24.0mat_factor[0], 1)] + [round(35.8mat_factor[0], 1)]*3,
-"תזוזת שיא w_peak (מ"מ)": [4.0]*2 + [3.5]*2 + [3.0]2 + [3.0] + [2.0]3,
-"זווית משתיירת δ_res (°)": [round(24.0mat_factor[1], 1)]2 + [round(23.0mat_factor[1], 1)]2 + [round(22.0mat_factor[1], 1)]2 + [round(16.0mat_factor[1], 1)] + [round(30.1mat_factor[1], 1)]*3,
-"תזוזת התייצבות w_res (מ"מ)": [9.0]*2 + [8.5]*2 + [9.0]*2 + [10.0] + [6.0]*3,
+"זווית חיכוך שיא δ_peak (°)": [
+round(25.0 * f_peak, 1), round(25.0 * f_peak, 1),
+round(27.0 * f_peak, 1), round(27.0 * f_peak, 1),
+round(29.0 * f_peak, 1), round(29.0 * f_peak, 1),
+round(24.0 * f_peak, 1),
+round(35.8 * f_peak, 1), round(35.8 * f_peak, 1), round(35.8 * f_peak, 1)
+],
+"תזוזת שיא w_peak (מ"מ)": [4.0, 4.0, 3.5, 3.5, 3.0, 3.0, 3.0, 2.0, 2.0, 2.0],
+"זווית משתיירת δ_res (°)": [
+round(24.0 * f_res, 1), round(24.0 * f_res, 1),
+round(23.0 * f_res, 1), round(23.0 * f_res, 1),
+round(22.0 * f_res, 1), round(22.0 * f_res, 1),
+round(16.0 * f_res, 1),
+round(30.1 * f_res, 1), round(30.1 * f_res, 1), round(30.1 * f_res, 1)
+],
+"תזוזת התייצבות w_res (מ"מ)": [9.0, 9.0, 8.5, 8.5, 9.0, 9.0, 10.0, 6.0, 6.0, 6.0],
 })
 elif soil_preset == "Dense Sand":
 default_layers = pd.DataFrame({
 "עומק תחתית שכבה (מ')": [float(i) for i in range(1, 11)],
 "Soil Type": ["Dense Sand"] * 10,
 "לחץ פרסיומטר התחלתי σ'h (kPa)": [80.0 + i * 10.0 for i in range(10)],
-"זווית חיכוך שיא δ_peak (°)": [round(35.8 * mat_factor[0], 1)] * 10,
+"זווית חיכוך שיא δ_peak (°)": [round(35.8 * f_peak, 1)] * 10,
 "תזוזת שיא w_peak (מ"מ)": [2.0] * 10,
-"זווית משתיירת δ_res (°)": [round(30.1 * mat_factor[1], 1)] * 10,
+"זווית משתיירת δ_res (°)": [round(30.1 * f_res, 1)] * 10,
 "תזוזת התייצבות w_res (מ"מ)": [6.0] * 10,
 })
 elif soil_preset == "Loose Sand":
@@ -308,9 +309,9 @@ default_layers = pd.DataFrame({
 "עומק תחתית שכבה (מ')": [float(i) for i in range(1, 11)],
 "Soil Type": ["Loose Sand"] * 10,
 "לחץ פרסיומטר התחלתי σ'h (kPa)": [50.0 + i * 5.0 for i in range(10)],
-"זווית חיכוך שיא δ_peak (°)": [round(28.0 * mat_factor[0], 1)] * 10,
+"זווית חיכוך שיא δ_peak (°)": [round(28.0 * f_peak, 1)] * 10,
 "תזוזת שיא w_peak (מ"מ)": [3.5] * 10,
-"זווית משתיירת δ_res (°)": [round(26.5 * mat_factor[1], 1)] * 10,
+"זווית משתיירת δ_res (°)": [round(26.5 * f_res, 1)] * 10,
 "תזוזת התייצבות w_res (מ"מ)": [8.0] * 10,
 })
 elif soil_preset == "Marl":
@@ -318,9 +319,9 @@ default_layers = pd.DataFrame({
 "עומק תחתית שכבה (מ')": [float(i) for i in range(1, 11)],
 "Soil Type": ["Marl"] * 10,
 "לחץ פרסיומטר התחלתי σ'h (kPa)": [75.0 + i * 8.0 for i in range(10)],
-"זווית חיכוך שיא δ_peak (°)": [round(29.0 * mat_factor[0], 1)] * 10,
+"זווית חיכוך שיא δ_peak (°)": [round(29.0 * f_peak, 1)] * 10,
 "תזוזת שיא w_peak (מ"מ)": [3.0] * 10,
-"זווית משתיירת δ_res (°)": [round(22.0 * mat_factor[1], 1)] * 10,
+"זווית משתיירת δ_res (°)": [round(22.0 * f_res, 1)] * 10,
 "תזוזת התייצבות w_res (מ"מ)": [9.0] * 10,
 })
 elif soil_preset == "Silt":
@@ -328,9 +329,9 @@ default_layers = pd.DataFrame({
 "עומק תחתית שכבה (מ')": [float(i) for i in range(1, 11)],
 "Soil Type": ["Silt"] * 10,
 "לחץ פרסיומטר התחלתי σ'h (kPa)": [55.0 + i * 6.0 for i in range(10)],
-"זווית חיכוך שיא δ_peak (°)": [round(27.0 * mat_factor[0], 1)] * 10,
+"זווית חיכוך שיא δ_peak (°)": [round(27.0 * f_peak, 1)] * 10,
 "תזוזת שיא w_peak (מ"מ)": [3.5] * 10,
-"זווית משתיירת δ_res (°)": [round(23.0 * mat_factor[1], 1)] * 10,
+"זווית משתיירת δ_res (°)": [round(23.0 * f_res, 1)] * 10,
 "תזוזת התייצבות w_res (מ"מ)": [8.5] * 10,
 })
 else:
@@ -338,9 +339,9 @@ default_layers = pd.DataFrame({
 "עומק תחתית שכבה (מ')": [float(i) for i in range(1, 11)],
 "Soil Type": ["Clay"] * 10,
 "לחץ פרסיומטר התחלתי σ'h (kPa)": [60.0 + i * 5.0 for i in range(10)],
-"זווית חיכוך שיא δ_peak (°)": [round(24.0 * mat_factor[0], 1)] * 10,
+"זווית חיכוך שיא δ_peak (°)": [round(24.0 * f_peak, 1)] * 10,
 "תזוזת שיא w_peak (מ"מ)": [3.0] * 10,
-"זווית משתיירת δ_res (°)": [round(16.0 * mat_factor[1], 1)] * 10,
+"זווית משתיירת δ_res (°)": [round(16.0 * f_res, 1)] * 10,
 "תזוזת התייצבות w_res (מ"מ)": [10.0] * 10,
 })
 st.markdown("---")
