@@ -520,42 +520,42 @@ if P_max_user > F_fric_at_zero_base:
         plt.tight_layout()
         st.pyplot(fig_comb)
         st.markdown("---")
-    st.subheader("4. Direct Shear Curves (τ - Δx) & Current Layer Operating Points")
-    fig_ds, ax_ds = plt.subplots(figsize=(10.5, 5.2))
-    cmap = plt.get_cmap("tab10")
-    
-    max_w_plot = max(
-        float(layers_df.get("Residual Disp w_res (mm)").max()) * 1.4,
-        float(np.max(w_total_node) * 1000.0 * 1.1),
-        12.0
-    )
-    w_grid_mm = np.linspace(0.0, max_w_plot, 250)
-    
-    for i in range(len(layers_df)):
-        s_type = str(layers_df.at[i, "Soil Type"]).strip()
-        z_top, z_bot = depths[i], depths[i + 1]
-        t_p = float(t_peak_seg.item(i))
-        t_r = float(t_res_seg.item(i))
-        w_p = float(layers_df.at[i, "Peak Disp w_peak (mm)"]) / 1000.0
-        w_r = float(layers_df.at[i, "Residual Disp w_res (mm)"]) / 1000.0
-    
-        tau_curve = [calc_shear_stress(wm / 1000.0, t_p, t_r, w_p, w_r)[0] for wm in w_grid_mm]
-        line_col = cmap(i % 10)
-        lbl = f"L{i+1}: {s_type} ({z_top:.1f}-{z_bot:.1f}m) | τ_mob={t_mob_seg.item(i):.1f} kPa"
-        ax_ds.plot(w_grid_mm, tau_curve, color=line_col, linewidth=2.0, label=lbl)
-    
-        w_op_mm = 0.5 * (float(w_total_node.item(i)) + float(w_total_node.item(i + 1))) * 1000.0
-        t_op = float(t_mob_seg.item(i))
-        ax_ds.scatter([w_op_mm], [t_op], color="red", edgecolor="black", s=65, zorder=6)
-    
-    ax_ds.scatter([], [], color="red", edgecolor="black", s=65, label="Current Operating Point (Layer Mid-Depth)")
-    ax_ds.set_xlabel("Interface Shear Displacement Δx [mm]", fontweight="bold", fontsize=10.5)
-    ax_ds.set_ylabel("Mobilized Shear Stress τ [kPa]", fontweight="bold", fontsize=10.5)
-    ax_ds.set_title("Direct Shear Stress-Displacement Curves by Soil Layer", fontsize=11, fontweight="bold")
-    ax_ds.set_xlim(0.0, max_w_plot)
-    ax_ds.set_ylim(bottom=0.0)
-    ax_ds.grid(True, linestyle="--", alpha=0.45)
-    ax_ds.legend(bbox_to_anchor=(1.02, 1.0), loc="upper left", fontsize=8.5, frameon=True)
-    plt.tight_layout()
-    st.pyplot(fig_ds)
-    
+        st.subheader("4. Direct Shear Curves (τ - Δx) & Current Layer Operating Points")
+        fig_ds, ax_ds = plt.subplots(figsize=(10.5, 5.2))
+        cmap = plt.get_cmap("tab10")
+        
+        max_w_plot = max(
+            float(layers_df.get("Residual Disp w_res (mm)").max()) * 1.4,
+            float(np.max(w_total_node) * 1000.0 * 1.1),
+            12.0
+        )
+        w_grid_mm = np.linspace(0.0, max_w_plot, 250)
+        
+        for i in range(len(layers_df)):
+            s_type = str(layers_df.at[i, "Soil Type"]).strip()
+            z_top, z_bot = depths[i], depths[i + 1]
+            t_p = float(t_peak_seg.item(i))
+            t_r = float(t_res_seg.item(i))
+            w_p = float(layers_df.at[i, "Peak Disp w_peak (mm)"]) / 1000.0
+            w_r = float(layers_df.at[i, "Residual Disp w_res (mm)"]) / 1000.0
+        
+            tau_curve = [calc_shear_stress(wm / 1000.0, t_p, t_r, w_p, w_r)[0] for wm in w_grid_mm]
+            line_col = cmap(i % 10)
+            lbl = f"L{i+1}: {s_type} ({z_top:.1f}-{z_bot:.1f}m) | τ_mob={t_mob_seg.item(i):.1f} kPa"
+            ax_ds.plot(w_grid_mm, tau_curve, color=line_col, linewidth=2.0, label=lbl)
+        
+            w_op_mm = 0.5 * (float(w_total_node.item(i)) + float(w_total_node.item(i + 1))) * 1000.0
+            t_op = float(t_mob_seg.item(i))
+            ax_ds.scatter([w_op_mm], [t_op], color="red", edgecolor="black", s=65, zorder=6)
+        
+        ax_ds.scatter([], [], color="red", edgecolor="black", s=65, label="Current Operating Point (Layer Mid-Depth)")
+        ax_ds.set_xlabel("Interface Shear Displacement Δx [mm]", fontweight="bold", fontsize=10.5)
+        ax_ds.set_ylabel("Mobilized Shear Stress τ [kPa]", fontweight="bold", fontsize=10.5)
+        ax_ds.set_title("Direct Shear Stress-Displacement Curves by Soil Layer", fontsize=11, fontweight="bold")
+        ax_ds.set_xlim(0.0, max_w_plot)
+        ax_ds.set_ylim(bottom=0.0)
+        ax_ds.grid(True, linestyle="--", alpha=0.45)
+        ax_ds.legend(bbox_to_anchor=(1.02, 1.0), loc="upper left", fontsize=8.5, frameon=True)
+        plt.tight_layout()
+        st.pyplot(fig_ds)
+        
