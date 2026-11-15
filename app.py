@@ -558,4 +558,83 @@ if P_max_user > F_fric_at_zero_base:
         ax_ds.legend(bbox_to_anchor=(1.02, 1.0), loc="upper left", fontsize=8.5, frameon=True)
         plt.tight_layout()
         st.pyplot(fig_ds)
-        
+        st.markdown("---")
+        st.subheader("5. Export Full Engineering Report to Excel (Print-Ready)")
+    
+        import io
+        excel_buffer = io.BytesIO()
+        with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
+            workbook = writer.book
+    
+            summary_rows = [
+                ("Pile Material", pile_mat),
+                ("Elastic Modulus E (kPa)", f"{E:,.0f}"),
+                ("Pile Diameter D (m)", f"{D:.2f}"),
+                ("Pile Length L (m)", f"{depths[-1]:.2f}"),
+                ("Soil Profile Preset", soil_preset),
+                ("Evaluation Head Load P0 (kN)", f"{p0_eval:,.1f}"),
+                ("Total Head Settlement w0 (mm)", f"{w0_tot_eval:.2f}"),
+                ("Elastic Shortening (mm)", f"{w0_el_eval:.2f}"),
+                ("Friction/Base Settlement (mm)", f"{w0_fr_eval:.2f}"),
+                ("Base Load P_base (kN)", f"{float(P_node[-1]):,.1f}"),
+                ("Base Stress q_base (kPa)", f"{q_base:,.1f}"),
+                ("Max Friction Load q_base=0 (kN)", f"{F_fric_at_zero_base:,.1f}")
+            ]
+            summary_df = pd.DataFrame.from_records(summary_rows, columns=["Parameter", "Value"])
+            summary_df.to_excel(writer, sheet_name="Summary & Results", startrow=1, index=False)
+    
+            export_layers_df = pd.DataFrame({
+                "Layer": range(1, len(layers_df) + 1),
+                "Soil Type": layers_df.get("Soil Type"),
+                "Depth (m)": [f"{depths[i]:.1f} - {depths[i+1]:.1f}" for i in range(len(layers_df))],
+                "Total Disp (mm)": w_total_node[:-1] * 1000.0,
+                "Elastic Shortening (mm)": dw_elastic_seg * 1000.0,
+                "Friction Disp (mm)": w_fric_node[:-1] * 1000.0,
+                "Peak Shear (kPa)": t_peak_seg,
+                "Residual Shear (kPa)": t_res_seg,
+                "Mobilized Shear (kPa)": t_mob_seg,
+                "Layer Friction (kN)": F_fric_seg,
+                "Axial Load at Top (kN)": P_node[:-1],
+                "State": state_seg
+            })
+            export_layers_df.to_excel(writer, sheet_name="Summary & Results", startrow=16, index=False)
+    
+            ws_res = writer.sheets.get("Summary & Results")
+            title_fmt = workbook.add_format({"bold": True, "font_size": 14, "font_color": "#1f497d"})
+            ws_res.write(0, 0, "Pile Geomechanical Analysis Report", title_fmt)
+            ws_res.set_column("A:B", 28)
+            ws_res.set_column("C:L", 16)
+            ws_res.set_landscape()
+            ws_res.fit_to_pages(1, 0)
+    
+            layers_df.to_excel(writer, sheet_name="Soil Input Data", startrow=1, index=False)
+            ws_in = writer.sheets.get("Soil Input Data")
+            ws_in.write(0, 0, "Input Soil Profile & Pressuremeter Parameters", title_fmt)
+            ws_in.set_column("A:G", 22)
+            ws_in.set_landscape()
+            ws_in.fit_to_pages(1, 0)
+    
+            ws_charts = workbook.add_worksheet("Engineering Charts")
+            ws_charts.write(0, 0, "Pile Analysis Graphical Output", title_fmt)
+            ws_charts.set_landscape()
+            ws_charts.fit_to_pages(1, 2)
+    
+            chart_list = [
+                (fig_soil, "A3", 0.65),
+                (fig_ls, "I3", 0.65),
+                (fig_comb, "A28", 0.65),
+                (fig_ds, "A52", 0.65)
+            ]
+            for fig_obj, cell_pos, scale_val in chart_list:
+                img_buf = io.BytesIO()
+                fig_obj.savefig(img_buf, format="png", dpi=180, bbox_inches="tight")
+                img_buf.seek(0)
+                ws_charts.insert_image(cell_pos, "chart.png", {"image_data": img_buf, "x_scale": scale_val, "y_scale": scale_val})
+    
+        st.download_button(
+            label="Download Full Excel Report with Charts (.xlsx)",
+            data=excel_buffer.getvalue(),
+            file_name=f"Pile_Full_Report_D{D}_L{depths[-1]:.0f}m.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    
