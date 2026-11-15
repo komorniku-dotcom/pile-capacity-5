@@ -406,71 +406,71 @@ if P_max_user > F_fric_at_zero_base:
             if wb > 0.10:
                 step_wb = 0.005
 
-    st.markdown("---")
-    st.subheader("2. Interactive Load Evaluation & Simulation Results")
-    target_P0 = st.slider(
-        "Select Evaluation Head Load P0 (kN):",
-        min_value=0.0,
-        max_value=float(P_max_user),
-        value=min(round(F_fric_at_zero_base * 0.9, 1), float(P_max_user)),
-        step=10.0
-    )
-
-    if target_P0 <= F_fric_at_zero_base:
-        (depths, w_total_node, w_elastic_node, w_fric_node, P_node,
-         t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
-         dw_elastic_seg, q_base, state_seg) = run_pile_model_partial_load(layers_df, E, D, target_P0)
-    else:
-        low_wb, high_wb = 0.0, 0.5
-        for _ in range(55):
-            mid_wb = 0.5 * (low_wb + high_wb)
-            res_tmp = run_pile_model_from_base(layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
-            _, _, _, _, P_node_tmp, *_ = res_tmp
-            res_tmp = run_pile_model_from_base(layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
-            _, _, _, _, P_node_tmp, *_ = res_tmp
-            if float(P_node_tmp.item(0)) < target_P0:
-                low_wb = mid_wb
-            else:
-                high_wb = mid_wb
-
-        (depths, w_total_node, w_elastic_node, w_fric_node, P_node,
-         t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
-         dw_elastic_seg, q_base, state_seg) = run_pile_model_from_base(
-            layers_df, E, D, 0.5 * (low_wb + high_wb), base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
+        st.markdown("---")
+        st.subheader("2. Interactive Load Evaluation & Simulation Results")
+        target_P0 = st.slider(
+            "Select Evaluation Head Load P0 (kN):",
+            min_value=0.0,
+            max_value=float(P_max_user),
+            value=min(round(F_fric_at_zero_base * 0.9, 1), float(P_max_user)),
+            step=10.0
         )
-
-    p0_eval = float(P_node.item(0))
-    w0_tot_eval = float(w_total_node.item(0) * 1000.0)
-    w0_el_eval = float(w_elastic_node.item(0) * 1000.0)
-    w0_fr_eval = float(w_fric_node.item(0) * 1000.0)
-
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Head Load P0", f"{p0_eval:,.1f} kN", f"{p0_eval/10.0:,.1f} ton")
-    m2.metric("Total Head Disp w0", f"{w0_tot_eval:.2f} mm")
-    m3.metric("Base Load P_base", f"{P_node[-1]:,.1f} kN", f"q_base: {q_base:,.0f} kPa")
-    m4.metric("Friction Load (q_base=0)", f"{F_fric_at_zero_base:,.1f} kN")
-if target_P0 > p0_eval + 5.0:
-    st.error(f"כשל (הרס מלא): העומס המבוקש ({target_P0:,.0f} kN) גבוה מתסבולת ההרס של הכלונס ({p0_eval:,.1f} kN).")
-    st.info(
-        f"Head Displacement Breakdown: "
-        f"Elastic = {w0_el_eval:.2f} mm | "
-        f"Friction/Soil = {w0_fr_eval:.2f} mm | "
-        f"Total = {w0_tot_eval:.2f} mm"
-    )
-
-    c_vis, c_curve = st.columns([1.0, 1.45])
-    fig_soil = plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base)
-    c_vis.pyplot(fig_soil)
-
-    fig_ls, ax_a = plt.subplots(figsize=(6.8, 5.2))
-    ax_a.plot(w0_tot_list, P0_list, label="Model: Total Disp (w_total)", color="#1f497d", linewidth=2.4)
-    ax_a.plot(w0_el_list, P0_list, "--", label="Model: Elastic Shortening (w_elastic)", color="#2e75b6")
-    ax_a.plot(w0_fr_list, P0_list, "-.", label="Model: Friction/Base Disp (w_fric)", color="#e67e22")
-
-    clean_field = field_test_df.dropna()
-    if len(clean_field) > 0:
-        ax_a.plot(clean_field.get("Measured Head Settlement w0 (mm)"), clean_field.get("Measured Head Load P0 (kN)"), "o-", color="#8e44ad", linewidth=1.8, markersize=6, label="Field Load Test (Measured)")
-
-    ax_a.axhline(F_fric_at_zero_base, color="green", linestyle=":", label=f"Friction Limit q_base=0 ({F_fric_at_zero_base:.0f} kN)")
-    ax_a.scatter([w0_tot_eval], [p0_eval], color="red", s=80, zorder=6, label="Current Evaluation Point")
-
+    
+        if target_P0 <= F_fric_at_zero_base:
+            (depths, w_total_node, w_elastic_node, w_fric_node, P_node,
+             t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
+             dw_elastic_seg, q_base, state_seg) = run_pile_model_partial_load(layers_df, E, D, target_P0)
+        else:
+            low_wb, high_wb = 0.0, 0.5
+            for _ in range(55):
+                mid_wb = 0.5 * (low_wb + high_wb)
+                res_tmp = run_pile_model_from_base(layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
+                _, _, _, _, P_node_tmp, *_ = res_tmp
+                res_tmp = run_pile_model_from_base(layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
+                _, _, _, _, P_node_tmp, *_ = res_tmp
+                if float(P_node_tmp.item(0)) < target_P0:
+                    low_wb = mid_wb
+                else:
+                    high_wb = mid_wb
+    
+            (depths, w_total_node, w_elastic_node, w_fric_node, P_node,
+             t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
+             dw_elastic_seg, q_base, state_seg) = run_pile_model_from_base(
+                layers_df, E, D, 0.5 * (low_wb + high_wb), base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
+            )
+    
+        p0_eval = float(P_node.item(0))
+        w0_tot_eval = float(w_total_node.item(0) * 1000.0)
+        w0_el_eval = float(w_elastic_node.item(0) * 1000.0)
+        w0_fr_eval = float(w_fric_node.item(0) * 1000.0)
+    
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Head Load P0", f"{p0_eval:,.1f} kN", f"{p0_eval/10.0:,.1f} ton")
+        m2.metric("Total Head Disp w0", f"{w0_tot_eval:.2f} mm")
+        m3.metric("Base Load P_base", f"{P_node[-1]:,.1f} kN", f"q_base: {q_base:,.0f} kPa")
+        m4.metric("Friction Load (q_base=0)", f"{F_fric_at_zero_base:,.1f} kN")
+    if target_P0 > p0_eval + 5.0:
+        st.error(f"כשל (הרס מלא): העומס המבוקש ({target_P0:,.0f} kN) גבוה מתסבולת ההרס של הכלונס ({p0_eval:,.1f} kN).")
+        st.info(
+            f"Head Displacement Breakdown: "
+            f"Elastic = {w0_el_eval:.2f} mm | "
+            f"Friction/Soil = {w0_fr_eval:.2f} mm | "
+            f"Total = {w0_tot_eval:.2f} mm"
+        )
+    
+        c_vis, c_curve = st.columns([1.0, 1.45])
+        fig_soil = plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base)
+        c_vis.pyplot(fig_soil)
+    
+        fig_ls, ax_a = plt.subplots(figsize=(6.8, 5.2))
+        ax_a.plot(w0_tot_list, P0_list, label="Model: Total Disp (w_total)", color="#1f497d", linewidth=2.4)
+        ax_a.plot(w0_el_list, P0_list, "--", label="Model: Elastic Shortening (w_elastic)", color="#2e75b6")
+        ax_a.plot(w0_fr_list, P0_list, "-.", label="Model: Friction/Base Disp (w_fric)", color="#e67e22")
+    
+        clean_field = field_test_df.dropna()
+        if len(clean_field) > 0:
+            ax_a.plot(clean_field.get("Measured Head Settlement w0 (mm)"), clean_field.get("Measured Head Load P0 (kN)"), "o-", color="#8e44ad", linewidth=1.8, markersize=6, label="Field Load Test (Measured)")
+    
+        ax_a.axhline(F_fric_at_zero_base, color="green", linestyle=":", label=f"Friction Limit q_base=0 ({F_fric_at_zero_base:.0f} kN)")
+        ax_a.scatter([w0_tot_eval], [p0_eval], color="red", s=80, zorder=6, label="Current Evaluation Point")
+    
