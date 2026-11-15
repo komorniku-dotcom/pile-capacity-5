@@ -433,9 +433,6 @@ if len(layers_df) > 0:
                 low_wb = mid_wb
             else:
                 high_wb = mid_wb
-                low_wb = mid_wb
-            else:
-                high_wb = mid_wb
 
         (depths, w_total_node, w_elastic_node, w_fric_node, P_node,
          t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
