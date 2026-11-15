@@ -366,7 +366,7 @@ layers_df = edited_df.dropna(subset=["Bottom Depth (m)", "Initial Pressuremeter 
 
 if len(layers_df) > 0:
     res_zero_base = run_pile_model_from_base(layers_df, E, D, 0.0, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
-    F_fric_at_zero_base = float(res_zero_base.item(0))
+    F_fric_at_zero_base = float(res_zero_base[4].item(0))
 
     P0_list, w0_tot_list, w0_el_list, w0_fr_list, Pbase_list, cum_fric_list = [], [], [], [], [], []
     partial_loads = []
@@ -425,7 +425,7 @@ if len(layers_df) > 0:
         for _ in range(55):
             mid_wb = 0.5 * (low_wb + high_wb)
             res_tmp = run_pile_model_from_base(layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
-            if float(res_tmp.item(0)) < target_P0:
+            if float(res_tmp[4].item(0)) < target_P0:
                 low_wb = mid_wb
             else:
                 high_wb = mid_wb
