@@ -473,7 +473,7 @@ if P_max_user > F_fric_at_zero_base:
     
         ax_a.axhline(F_fric_at_zero_base, color="green", linestyle=":", label=f"Friction Limit q_base=0 ({F_fric_at_zero_base:.0f} kN)")
         ax_a.scatter([w0_tot_eval], [p0_eval], color="red", s=80, zorder=6, label="Current Evaluation Point")
-            st.markdown("---")
+        st.markdown("---")
         st.subheader("3. Combined Depth Profile: Axial Load & Settlement Along the Pile")
         fig_comb, ax_load = plt.subplots(figsize=(10.5, 5.2))
     
