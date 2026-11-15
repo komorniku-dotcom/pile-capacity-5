@@ -244,7 +244,8 @@ def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_
     ax.set_ylim(max_depth + max_depth * 0.18, -max_depth * 0.18)
     ax.set_xticks([])
     ax.set_ylabel("Depth (m)")
-    ax.set_title(f"Pile Cross-Section (D = {D}m) & Soil Layers", fontsize=10.5, fontweight="bold")
+    ax.set_title(f"Pile Cross-Section (D = {D}m, L = {max_depth:.1f}m)", fontsize=10.5, fontweight="bold")
+
     plt.tight_layout()
     return fig
 def build_preset_df(preset_name, f_peak, f_res):
@@ -292,6 +293,7 @@ e_map = {"Concrete": 30000000, "Steel": 210000000, "HDPE Plastic": 1500000, "Woo
 default_E = e_map.get(pile_mat)
 E = st.sidebar.number_input("Elastic Modulus E (kPa)", value=default_E, step=1000000)
 D = st.sidebar.number_input("Pile Diameter D (m)", min_value=0.2, max_value=3.0, value=0.6, step=0.05)
+L_pile = st.sidebar.number_input("Pile Length L (m)", min_value=1.0, max_value=100.0, value=10.0, step=0.5)
 
 soil_preset = st.sidebar.selectbox(
     "Soil Profile Preset",
@@ -308,6 +310,7 @@ soil_preset = st.sidebar.selectbox(
 f_map = {"Concrete": (1.0, 1.0), "Steel": (0.67, 0.76), "HDPE Plastic": (0.45, 0.55), "Wood": (0.85, 0.85)}
 f_peak, f_res = f_map.get(pile_mat)
 default_layers = build_preset_df(soil_preset, f_peak, f_res)
+default_layers["Bottom Depth (m)"] = (default_layers["Bottom Depth (m)"] * (L_pile / 10.0)).round(2)
 
 st.sidebar.markdown("---")
 st.sidebar.header("2. Load Range & Base Resistance")
