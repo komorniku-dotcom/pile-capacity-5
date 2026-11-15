@@ -369,8 +369,8 @@ if len(layers_df) > 0:
      _, _, _, _, P_node_zero, _, _, _, _, cum_fric_zero, *_ = res_zero_base
      F_fric_at_zero_base = float(cum_fric_zero[-1])
 
-    P0_list, w0_tot_list, w0_el_list, w0_fr_list, Pbase_list, cum_fric_list = [], [], [], [], [], []
-    partial_loads = []
+     P0_list, w0_tot_list, w0_el_list, w0_fr_list, Pbase_list, cum_fric_list = [], [], [], [], [], []
+     partial_loads = []
 
     if F_fric_at_zero_base > 0:
         partial_loads = np.linspace(0.0, min(F_fric_at_zero_base, P_max_user), 35)
