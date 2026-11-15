@@ -450,7 +450,8 @@ if len(layers_df) > 0:
     m2.metric("Total Head Disp w0", f"{w0_tot_eval:.2f} mm")
     m3.metric("Base Load P_base", f"{P_node[-1]:,.1f} kN", f"q_base: {q_base:,.0f} kPa")
     m4.metric("Friction Load (q_base=0)", f"{F_fric_at_zero_base:,.1f} kN")
-
+if target_P0 > p0_eval + 5.0:
+    st.error(f"כשל (הרס מלא): העומס המבוקש ({target_P0:,.0f} kN) גבוה מתסבולת ההרס של הכלונס ({p0_eval:,.1f} kN).")
     st.info(
         f"Head Displacement Breakdown: "
         f"Elastic = {w0_el_eval:.2f} mm | "
