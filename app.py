@@ -153,8 +153,8 @@ def run_pile_model_partial_load(layers_df, E, D, target_P0):
     dw_elastic_seg = np.zeros(n_s)
     state_seg = [""] * n_s
 
-    w_total_node = 0.5 * (low_w + high_w)
-    P_node = target_P0
+    w_total_node[0] = 0.5 * (low_w + high_w)
+    P_node[0] = target_P0
 
     for idx in range(n_s):
         dz_s = max(depths[idx + 1] - depths[idx], 0.01)
@@ -227,7 +227,7 @@ def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_
     ax.add_patch(rect_pile)
 
     ax.annotate(
-        f"P0 = {P_node:,.0f} kN",
+        f"P0 = {P_node[0]:,.0f} kN",
         xy=(0, 0), xytext=(0, -max_depth * 0.12),
         ha="center", va="bottom", fontsize=9.5, fontweight="bold", color="#c0392b",
         arrowprops=dict(facecolor="#c0392b", edgecolor="#c0392b", width=2.5, headwidth=8)
@@ -252,6 +252,7 @@ def build_preset_df(preset_name, f_peak, f_res):
     presets = {
         "Multi-layer (Fill, Silt, Marl, Clay, Dense Sand)": pd.DataFrame({
             "Bottom Depth (m)": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+
 "Soil Type": ["Fill", "Fill", "Silt", "Silt", "Marl", "Marl", "Clay", "Dense Sand", "Dense Sand", "Dense Sand"],
 "Initial Pressuremeter σ'h (kPa)": [40.0, 45.0, 55.0, 65.0, 85.0, 95.0, 105.0, 130.0, 145.0, 160.0],
 "Peak Friction δ_peak (°)": [round(x * f_peak, 1) for x in [25.0, 25.0, 27.0, 27.0, 29.0, 29.0, 24.0, 35.8, 35.8, 35.8]],
