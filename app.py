@@ -38,15 +38,15 @@ def calc_base_load(w_base_m, base_model_type, A, B_parab, q_ult_hyp, k_init_hyp,
         q_b = w_base_m / ((1.0 / max(k_init_hyp, 1.0)) + (w_base_m / max(q_ult_hyp, 1.0)))
         return q_b * A
     df_sorted = base_table_df.dropna().sort_values(by="Base Settlement (mm)")
-    w_mm_arr = df_sorted["Base Settlement (mm)"].values
-    p_kn_arr = df_sorted["Base Load (kN)"].values
+    w_mm_arr = df_sorted.get("Base Settlement (mm)").values
+    p_kn_arr = df_sorted.get("Base Load (kN)").values
     return float(np.interp(w_base_m * 1000.0, w_mm_arr, p_kn_arr))
 
 def run_pile_model_from_base(layers_df, E, D, w_base_m, base_model_type, B_parab, q_ult_hyp, k_init_hyp, base_table_df):
     A = np.pi * (D ** 2) / 4.0
     U = np.pi * D
     num_layers = len(layers_df)
-    depths = [0.0] + layers_df["Bottom Depth (m)"].tolist()
+    depths = [0.0] + layers_df.get("Bottom Depth (m)").tolist()
 
     w_total_node = np.zeros(num_layers + 1)
     w_elastic_node = np.zeros(num_layers + 1)
@@ -67,11 +67,11 @@ def run_pile_model_from_base(layers_df, E, D, w_base_m, base_model_type, B_parab
 
     for i in range(num_layers - 1, -1, -1):
         dz = max(depths[i + 1] - depths[i], 0.01)
-        sig_h = layers_df.loc[i, "Initial Pressuremeter σ'h (kPa)"]
-        d_peak = layers_df.loc[i, "Peak Friction δ_peak (°)"]
-        w_p = layers_df.loc[i, "Peak Disp w_peak (mm)"] / 1000.0
-        d_res = layers_df.loc[i, "Residual Friction δ_res (°)"]
-        w_r = layers_df.loc[i, "Residual Disp w_res (mm)"] / 1000.0
+        sig_h = layers_df.at[i, "Initial Pressuremeter σ'h (kPa)"]
+        d_peak = layers_df.at[i, "Peak Friction δ_peak (°)"]
+        w_p = layers_df.at[i, "Peak Disp w_peak (mm)"] / 1000.0
+        d_res = layers_df.at[i, "Residual Friction δ_res (°)"]
+        w_r = layers_df.at[i, "Residual Disp w_res (mm)"] / 1000.0
 
         t_p = sig_h * np.tan(np.radians(d_peak))
         t_r = sig_h * np.tan(np.radians(d_res))
@@ -109,7 +109,7 @@ def run_pile_model_from_base(layers_df, E, D, w_base_m, base_model_type, B_parab
 def run_pile_model_partial_load(layers_df, E, D, target_P0):
     A = np.pi * (D ** 2) / 4.0
     U = np.pi * D
-    depths = [0.0] + layers_df["Bottom Depth (m)"].tolist()
+    depths = [0.0] + layers_df.get("Bottom Depth (m)").tolist()
     n_s = len(layers_df)
 
     if target_P0 <= 1e-6:
@@ -126,11 +126,11 @@ def run_pile_model_partial_load(layers_df, E, D, target_P0):
         P_curr = target_P0
         for idx in range(n_s):
             dz_s = max(depths[idx + 1] - depths[idx], 0.01)
-            sig_h = layers_df.loc[idx, "Initial Pressuremeter σ'h (kPa)"]
-            t_p = sig_h * np.tan(np.radians(layers_df.loc[idx, "Peak Friction δ_peak (°)"]))
-            t_r = sig_h * np.tan(np.radians(layers_df.loc[idx, "Residual Friction δ_res (°)"]))
-            w_p = layers_df.loc[idx, "Peak Disp w_peak (mm)"] / 1000.0
-            w_r = layers_df.loc[idx, "Residual Disp w_res (mm)"] / 1000.0
+            sig_h = layers_df.at[idx, "Initial Pressuremeter σ'h (kPa)"]
+            t_p = sig_h * np.tan(np.radians(layers_df.at[idx, "Peak Friction δ_peak (°)"]))
+            t_r = sig_h * np.tan(np.radians(layers_df.at[idx, "Residual Friction δ_res (°)"]))
+            w_p = layers_df.at[idx, "Peak Disp w_peak (mm)"] / 1000.0
+            w_r = layers_df.at[idx, "Residual Disp w_res (mm)"] / 1000.0
 
             tm, _ = calc_shear_stress(w_curr, t_p, t_r, w_p, w_r)
             ff = U * dz_s * tm
@@ -153,16 +153,16 @@ def run_pile_model_partial_load(layers_df, E, D, target_P0):
     dw_elastic_seg = np.zeros(n_s)
     state_seg = [""] * n_s
 
-    w_total_node[0] = 0.5 * (low_w + high_w)
-    P_node[0] = target_P0
+    np.put(w_total_node, 0, 0.5 * (low_w + high_w))
+    np.put(P_node, 0, target_P0)
 
     for idx in range(n_s):
         dz_s = max(depths[idx + 1] - depths[idx], 0.01)
-        sig_h = layers_df.loc[idx, "Initial Pressuremeter σ'h (kPa)"]
-        t_p = sig_h * np.tan(np.radians(layers_df.loc[idx, "Peak Friction δ_peak (°)"]))
-        t_r = sig_h * np.tan(np.radians(layers_df.loc[idx, "Residual Friction δ_res (°)"]))
-        w_p = layers_df.loc[idx, "Peak Disp w_peak (mm)"] / 1000.0
-        w_r = layers_df.loc[idx, "Residual Disp w_res (mm)"] / 1000.0
+        sig_h = layers_df.at[idx, "Initial Pressuremeter σ'h (kPa)"]
+        t_p = sig_h * np.tan(np.radians(layers_df.at[idx, "Peak Friction δ_peak (°)"]))
+        t_r = sig_h * np.tan(np.radians(layers_df.at[idx, "Residual Friction δ_res (°)"]))
+        w_p = layers_df.at[idx, "Peak Disp w_peak (mm)"] / 1000.0
+        w_r = layers_df.at[idx, "Residual Disp w_res (mm)"] / 1000.0
 
         if P_node[idx] <= 1e-6:
             tm, st_txt = 0.0, "No Displacement"
@@ -206,8 +206,8 @@ def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_
     for i in range(len(layers_df)):
         z_top, z_bot = depths[i], depths[i + 1]
         dz = z_bot - z_top
-        s_type = str(layers_df.loc[i, "Soil Type"]).strip()
-        sig_h = layers_df.loc[i, "Initial Pressuremeter σ'h (kPa)"]
+        s_type = str(layers_df.at[i, "Soil Type"]).strip()
+        sig_h = layers_df.at[i, "Initial Pressuremeter σ'h (kPa)"]
 
         color = SOIL_COLORS.get(s_type, fallback_colors[i % len(fallback_colors)])
         for key, val in SOIL_COLORS.items():
@@ -226,8 +226,9 @@ def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_
     rect_pile = patches.Rectangle((-pile_half_w, 0.0), pile_half_w * 2, max_depth, facecolor="#7f8c8d", edgecolor="#2c3e50", linewidth=2, zorder=4)
     ax.add_patch(rect_pile)
 
+    p_head_val = float(P_node.item(0))
     ax.annotate(
-        f"P0 = {P_node[0]:,.0f} kN",
+        f"P0 = {p_head_val:,.0f} kN",
         xy=(0, 0), xytext=(0, -max_depth * 0.12),
         ha="center", va="bottom", fontsize=9.5, fontweight="bold", color="#c0392b",
         arrowprops=dict(facecolor="#c0392b", edgecolor="#c0392b", width=2.5, headwidth=8)
@@ -249,6 +250,9 @@ def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_
     return fig
 
 def build_preset_df(preset_name, f_peak, f_res):
-    presets = {
-        "Multi-layer (Fill, Silt, Marl, Clay, Dense Sand)": pd.DataFrame({
-            "Bottom Depth (m)": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+    cols = [
+        "Bottom Depth (m)",
+        "Soil Type",
+        "Initial Pressuremeter σ'h (kPa)",
+        "Peak Friction δ_peak (°)",
+        "Peak Disp w_peak (mm)",
