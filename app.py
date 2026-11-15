@@ -519,7 +519,7 @@ if P_max_user > F_fric_at_zero_base:
         )
         plt.tight_layout()
         st.pyplot(fig_comb)
-            st.markdown("---")
+        st.markdown("---")
     st.subheader("4. Direct Shear Curves (τ - Δx) & Current Layer Operating Points")
     fig_ds, ax_ds = plt.subplots(figsize=(10.5, 5.2))
     cmap = plt.get_cmap("tab10")
