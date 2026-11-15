@@ -406,7 +406,7 @@ for _ in range(300):
     w0_fr_list.append(float(wf * 1000.0))
     Pbase_list.append(float(Pn[-1]))
     cum_fric_list.append(float(cf[-1]))
-    if p_curr >= P_max_user or wb >= 0.5:
+if p_curr >= P_max_user or wb >= 0.5:
     break
     wb += step_wb
 if wb > 0.02:
@@ -459,7 +459,7 @@ else:
     ax_a.plot(w0_el_list, P0_list, "--", label="Model: Elastic Shortening (w_elastic)", color="#2e75b6")
     ax_a.plot(w0_fr_list, P0_list, "-.", label="Model: Friction/Base Disp (w_fric)", color="#e67e22")
     clean_field = field_test_df.dropna()
-    if len(clean_field) > 0:
+if len(clean_field) > 0:
         ax_a.plot(clean_field["Measured Head Settlement w0 (mm)"], clean_field["Measured Head Load P0 (kN)"], "o-", color="#8e44ad", linewidth=1.8, markersize=6, label="Field Load Test (Measured)")
         ax_a.axhline(F_fric_at_zero_base, color="green", linestyle=":", label=f"Friction Limit q_base=0 ({F_fric_at_zero_base:.0f} kN)")
         ax_a.scatter([w_total_node * 1000.0], [P_node], color="red", s=80, zorder=6, label="Current Evaluation Point")
