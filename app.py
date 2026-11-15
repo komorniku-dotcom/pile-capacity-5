@@ -429,13 +429,13 @@ if len(layers_df) > 0:
             _, _, _, _, P_node_tmp, *_ = res_tmp
             res_tmp = run_pile_model_from_base(layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
             _, _, _, _, P_node_tmp, *_ = res_tmp
-            if float(P_node_tmp.item(0)) < target_P0:
-                low_wb = mid_wb
-            else:
-                high_wb = mid_wb
-                low_wb = mid_wb
-            else:
-                high_wb = mid_wb
+     if float(P_node_tmp.item(0)) < target_P0:
+         low_wb = mid_wb
+     else:
+           high_wb = mid_wb
+           low_wb = mid_wb
+     else:
+           high_wb = mid_wb
 
         (depths, w_total_node, w_elastic_node, w_fric_node, P_node,
          t_peak_seg, t_res_seg, t_mob_seg, F_fric_seg, cum_fric_seg,
