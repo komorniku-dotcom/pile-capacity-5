@@ -474,47 +474,47 @@ if P_max_user > F_fric_at_zero_base:
         ax_a.axhline(F_fric_at_zero_base, color="green", linestyle=":", label=f"Friction Limit q_base=0 ({F_fric_at_zero_base:.0f} kN)")
         ax_a.scatter([w0_tot_eval], [p0_eval], color="red", s=80, zorder=6, label="Current Evaluation Point")
             st.markdown("---")
-    st.subheader("3. Combined Depth Profile: Axial Load & Settlement Along the Pile")
-    fig_comb, ax_load = plt.subplots(figsize=(10.5, 5.2))
-
-    for i in range(len(layers_df)):
-        z_top, z_bot = depths[i], depths[i + 1]
-        s_type = str(layers_df.at[i, "Soil Type"]).strip()
-        bg_col = SOIL_COLORS.get(s_type, "#f2f4f4")
-        ax_load.axhspan(z_top, z_bot, facecolor=bg_col, alpha=0.35)
-        ax_load.text(
-            max(P_node.item(0) * 0.02, 5.0), 0.5 * (z_top + z_bot),
-            f"{s_type} (τ={t_mob_seg[i]:.1f} kPa)",
-            va="center", ha="left", fontsize=8, color="#2c3e50", alpha=0.85
+        st.subheader("3. Combined Depth Profile: Axial Load & Settlement Along the Pile")
+        fig_comb, ax_load = plt.subplots(figsize=(10.5, 5.2))
+    
+        for i in range(len(layers_df)):
+            z_top, z_bot = depths[i], depths[i + 1]
+            s_type = str(layers_df.at[i, "Soil Type"]).strip()
+            bg_col = SOIL_COLORS.get(s_type, "#f2f4f4")
+            ax_load.axhspan(z_top, z_bot, facecolor=bg_col, alpha=0.35)
+            ax_load.text(
+                max(P_node.item(0) * 0.02, 5.0), 0.5 * (z_top + z_bot),
+                f"{s_type} (τ={t_mob_seg[i]:.1f} kPa)",
+                va="center", ha="left", fontsize=8, color="#2c3e50", alpha=0.85
+            )
+    
+        line1 = ax_load.plot(
+            P_node, depths, marker="^", markersize=7, linewidth=2.6,
+            color="#8e44ad", label="Axial Load P(z) [kN]"
         )
-
-    line1 = ax_load.plot(
-        P_node, depths, marker="^", markersize=7, linewidth=2.6,
-        color="#8e44ad", label="Axial Load P(z) [kN]"
-    )
-    ax_load.set_xlabel("Axial Load Along Pile P(z) [kN]", color="#8e44ad", fontweight="bold", fontsize=10.5)
-    ax_load.tick_params(axis="x", labelcolor="#8e44ad")
-    ax_load.set_ylabel("Depth z [m]", fontweight="bold", fontsize=10.5)
-    ax_load.set_ylim(depths[-1], 0.0)
-    ax_load.set_xlim(0.0, max(P_node.item(0) * 1.15, 50.0))
-    ax_load.grid(True, linestyle="--", alpha=0.45)
-
-    ax_disp = ax_load.twiny()
-    line2 = ax_disp.plot(
-        w_total_node * 1000.0, depths, marker="o", markersize=6, linestyle="-.", linewidth=2.4,
-        color="#1f497d", label="Total Settlement w(z) [mm]"
-    )
-    ax_disp.set_xlabel("Settlement Along Pile w(z) [mm]", color="#1f497d", fontweight="bold", fontsize=10.5)
-    ax_disp.tick_params(axis="x", labelcolor="#1f497d")
-    ax_disp.set_xlim(0.0, max(w_total_node.item(0) * 1000.0 * 1.15, 1.0))
-
-    lines = line1 + line2
-    labels = [l.get_label() for l in lines]
-    ax_load.legend(lines, labels, loc="lower right", frameon=True, facecolor="white", framealpha=0.9, fontsize=9.5)
-    ax_load.set_title(
-        f"Load Transfer & Settlement Distribution Along Pile (P0 = {p0_eval:,.1f} kN | w0 = {w0_tot_eval:.2f} mm)",
-        fontsize=11, fontweight="bold", pad=14
-    )
-    plt.tight_layout()
-    st.pyplot(fig_comb)
-
+        ax_load.set_xlabel("Axial Load Along Pile P(z) [kN]", color="#8e44ad", fontweight="bold", fontsize=10.5)
+        ax_load.tick_params(axis="x", labelcolor="#8e44ad")
+        ax_load.set_ylabel("Depth z [m]", fontweight="bold", fontsize=10.5)
+        ax_load.set_ylim(depths[-1], 0.0)
+        ax_load.set_xlim(0.0, max(P_node.item(0) * 1.15, 50.0))
+        ax_load.grid(True, linestyle="--", alpha=0.45)
+    
+        ax_disp = ax_load.twiny()
+        line2 = ax_disp.plot(
+            w_total_node * 1000.0, depths, marker="o", markersize=6, linestyle="-.", linewidth=2.4,
+            color="#1f497d", label="Total Settlement w(z) [mm]"
+        )
+        ax_disp.set_xlabel("Settlement Along Pile w(z) [mm]", color="#1f497d", fontweight="bold", fontsize=10.5)
+        ax_disp.tick_params(axis="x", labelcolor="#1f497d")
+        ax_disp.set_xlim(0.0, max(w_total_node.item(0) * 1000.0 * 1.15, 1.0))
+    
+        lines = line1 + line2
+        labels = [l.get_label() for l in lines]
+        ax_load.legend(lines, labels, loc="lower right", frameon=True, facecolor="white", framealpha=0.9, fontsize=9.5)
+        ax_load.set_title(
+            f"Load Transfer & Settlement Distribution Along Pile (P0 = {p0_eval:,.1f} kN | w0 = {w0_tot_eval:.2f} mm)",
+            fontsize=11, fontweight="bold", pad=14
+        )
+        plt.tight_layout()
+        st.pyplot(fig_comb)
+    
