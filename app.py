@@ -375,7 +375,7 @@ if len(layers_df) > 0:
 if F_fric_at_zero_base > 0:
      partial_loads = np.linspace(0.0, min(F_fric_at_zero_base, P_max_user), 35)
 
-    for p_val in partial_loads:
+for p_val in partial_loads:
         _, wt, we, wf, Pn, _, _, _, _, cf, _, _, _ = run_pile_model_partial_load(layers_df, E, D, p_val)
         P0_list.append(float(Pn.item(0)))
         w0_tot_list.append(float(wt.item(0) * 1000.0))
@@ -384,7 +384,7 @@ if F_fric_at_zero_base > 0:
         Pbase_list.append(0.0)
         cum_fric_list.append(float(cf[-1]))
 
-    if P_max_user > F_fric_at_zero_base:
+if P_max_user > F_fric_at_zero_base:
         wb = 0.0002
         step_wb = 0.0005
         for _ in range(300):
