@@ -307,7 +307,7 @@ def build_preset_df(preset_name, f_peak, f_res):
 }
 return presets[preset_name]
 
-Sidebar Inputs
+# Sidebar Inputs
 
 st.sidebar.header("1. Pile Properties & Soil Preset")
 pile_mat = st.sidebar.selectbox("Pile Material", ["Concrete", "Steel", "HDPE Plastic", "Wood"])
