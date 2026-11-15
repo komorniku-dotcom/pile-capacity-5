@@ -365,9 +365,9 @@ with st.expander("Optional: Field Load Test Data for Comparison on Graph"):
 layers_df = edited_df.dropna(subset=["Bottom Depth (m)", "Initial Pressuremeter σ'h (kPa)"]).sort_values(by="Bottom Depth (m)").reset_index(drop=True)
 
 if len(layers_df) > 0:
-    res_zero_base = run_pile_model_from_base(layers_df, E, D, 0.0, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
-    _, _, _, _, P_node_zero, *_ = res_zero_base
-    F_fric_at_zero_base = float(P_node_zero.item(0))
+     res_zero_base = run_pile_model_from_base(layers_df, E, D, 0.00001, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table)
+    _, _, _, _, P_node_zero, _, _, _, _, cum_fric_zero, *_ = res_zero_base
+    F_fric_at_zero_base = float(cum_fric_zero[-1])
 
     P0_list, w0_tot_list, w0_el_list, w0_fr_list, Pbase_list, cum_fric_list = [], [], [], [], [], []
     partial_loads = []
