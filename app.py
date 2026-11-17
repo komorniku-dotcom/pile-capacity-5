@@ -17,10 +17,11 @@ st.markdown(
         font-family: 'Times New Roman', Times, serif !important;
     }
     .prof-header {
-        color: #1f497d;
-        font-size: 30px;
+        color: #2e86c1;
+        font-size: 32px;
         font-weight: bold;
-        margin-bottom: 4px;
+        text-align: center;
+        margin-bottom: 6px;
         letter-spacing: 0.5px;
     }
     </style>
@@ -28,6 +29,7 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
 
 st.title("Pile Geomechanical Model - Soil Cross Section & Load Test Comparison")
 st.markdown("---")
