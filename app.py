@@ -514,7 +514,7 @@ if len(layers_df) > 0:
         step=10.0,
     )
 
-    if target_P0 <= F_fric_at_zero_base:
+       if target_P0 <= F_fric_at_zero_base:
         (
             depths,
             w_total_node,
@@ -530,12 +530,12 @@ if len(layers_df) > 0:
             q_base,
             state_seg,
         ) = run_pile_model_partial_load(layers_df, E, D, target_P0)
-        else:
-            low_wb, high_wb = 0.0, 0.5
-            for _ in range(55):
+    else:
+        low_wb, high_wb = 0.0, 0.5
+        for _ in range(55):
             mid_wb = 0.5 * (low_wb + high_wb)
             res_tmp = run_pile_model_from_base(
-            layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
+                layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
             )
             P_node_tmp = res_tmp[4]
             if float(P_node_tmp.item(0)) < target_P0:
