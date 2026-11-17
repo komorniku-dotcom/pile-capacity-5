@@ -602,7 +602,7 @@ if len(layers_df) > 0:
         )
 
     ax_a.axhline(F_fric_at_zero_base, color="green", linestyle=":", label=f"Friction Limit q_base=0 ({F_fric_at_zero_base:.0f} kN)")
-        ax_a.scatter([w0_tot_eval], [p0_eval], color="red", s=80, zorder=6, label="Current Evaluation Point")
+    ax_a.scatter([w0_tot_eval], [p0_eval], color="red", s=80, zorder=6, label="Current Evaluation Point")
     ax_a.set_ylim(0, P_max_user * 1.05)
     ax_a.set_xlim(0, 50)
     ax_a.set_xlabel("Pile Head Settlement w0 (mm)", fontname="Times New Roman")
