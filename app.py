@@ -29,9 +29,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title(
-    "Pile Geomechanical Model - Soil Cross Section & Load Test Comparison"
-)
+st.title("Pile Geomechanical Model - Soil Cross Section & Load Test Comparison")
 st.markdown("---")
 
 SOIL_COLORS = {
@@ -57,28 +55,24 @@ def calc_shear_stress(w, t_peak, t_res, w_p, w_r):
     return t_res, "Residual"
 
 
-def calc_base_load(
-    w_base_m, base_model_type, A, B_parab, q_ult_hyp, k_init_hyp, base_table_df
-):
+def calc_base_load(w_base_m, base_model_type, A, B_parab, q_ult_hyp, k_init_hyp, base_table_df):
     if w_base_m <= 1e-9:
         return 0.0
     if base_model_type == "Parabolic (B * sqrt(w))":
         return B_parab * np.sqrt(w_base_m)
     if base_model_type == "Hyperbolic (Classic Load Test)":
-        q_b = w_base_m / (
-            (1.0 / max(k_init_hyp, 1.0)) + (w_base_m / max(q_ult_hyp, 1.0))
-        )
+        q_b = w_base_m / ((1.0 / max(k_init_hyp, 1.0)) + (w_base_m / max(q_ult_hyp, 1.0)))
         return q_b * A
     df_sorted = base_table_df.dropna().sort_values(by="Base Settlement (mm)")
-    w_mm_arr = df_sorted["Base Settlement (mm)"].values
-    p_kn_arr = df_sorted["Base Load (kN)"].values
+    w_mm_arr = df_sorted.get("Base Settlement (mm)").values
+    p_kn_arr = df_sorted.get("Base Load (kN)").values
     return float(np.interp(w_base_m * 1000.0, w_mm_arr, p_kn_arr))
 
 
 def run_pile_model_partial_load(layers_df, E, D, target_P0):
-    A = np.pi * (D**2) / 4.0
+    A = np.pi * (D ** 2) / 4.0
     U = np.pi * D
-    depths = [0.0] + layers_df["Bottom Depth (m)"].tolist()
+    depths = [0.0] + layers_df.get("Bottom Depth (m)").tolist()
     n_s = len(layers_df)
 
     if target_P0 <= 1e-6:
@@ -106,12 +100,8 @@ def run_pile_model_partial_load(layers_df, E, D, target_P0):
         for idx in range(n_s):
             dz_s = max(depths[idx + 1] - depths[idx], 0.01)
             sig_h = layers_df.at[idx, "Initial Pressuremeter σ'h (kPa)"]
-            t_p = sig_h * np.tan(
-                np.radians(layers_df.at[idx, "Peak Friction δ_peak (°)"])
-            )
-            t_r = sig_h * np.tan(
-                np.radians(layers_df.at[idx, "Residual Friction δ_res (°)"])
-            )
+            t_p = sig_h * np.tan(np.radians(layers_df.at[idx, "Peak Friction δ_peak (°)"]))
+            t_r = sig_h * np.tan(np.radians(layers_df.at[idx, "Residual Friction δ_res (°)"]))
             w_p = layers_df.at[idx, "Peak Disp w_peak (mm)"] / 1000.0
             w_r = layers_df.at[idx, "Residual Disp w_res (mm)"] / 1000.0
 
@@ -138,53 +128,47 @@ def run_pile_model_partial_load(layers_df, E, D, target_P0):
     dw_elastic_seg = np.zeros(n_s)
     state_seg = [""] * n_s
 
-    w_total_node[0] = 0.5 * (low_w + high_w)
-    P_node[0] = target_P0
+    np.put(w_total_node, 0, 0.5 * (low_w + high_w))
+    np.put(P_node, 0, target_P0)
 
     for idx in range(n_s):
         dz_s = max(depths[idx + 1] - depths[idx], 0.01)
         sig_h = layers_df.at[idx, "Initial Pressuremeter σ'h (kPa)"]
-        t_p = sig_h * np.tan(
-            np.radians(layers_df.at[idx, "Peak Friction δ_peak (°)"])
-        )
-        t_r = sig_h * np.tan(
-            np.radians(layers_df.at[idx, "Residual Friction δ_res (°)"])
-        )
+        t_p = sig_h * np.tan(np.radians(layers_df.at[idx, "Peak Friction δ_peak (°)"]))
+        t_r = sig_h * np.tan(np.radians(layers_df.at[idx, "Residual Friction δ_res (°)"]))
         w_p = layers_df.at[idx, "Peak Disp w_peak (mm)"] / 1000.0
         w_r = layers_df.at[idx, "Residual Disp w_res (mm)"] / 1000.0
 
-        if P_node[idx] <= 1e-6:
+        if P_node.item(idx) <= 1e-6:
             tm, st_txt = 0.0, "No Displacement"
             ff = 0.0
-            P_node[idx + 1] = 0.0
+            np.put(P_node, idx + 1, 0.0)
             dw_el = 0.0
-            w_total_node[idx + 1] = 0.0
+            np.put(w_total_node, idx + 1, 0.0)
         else:
-            w_bot_est = max(
-                w_total_node[idx] - (P_node[idx] * dz_s) / (E * A), 0.0
-            )
-            w_mid = 0.5 * (w_total_node[idx] + w_bot_est)
+            w_bot_est = max(w_total_node.item(idx) - (P_node.item(idx) * dz_s) / (E * A), 0.0)
+            w_mid = 0.5 * (w_total_node.item(idx) + w_bot_est)
             tm, st_txt = calc_shear_stress(w_mid, t_p, t_r, w_p, w_r)
             ff_max = U * dz_s * tm
-            ff = min(P_node[idx], ff_max)
-            if ff < ff_max and P_node[idx] > 0:
+            ff = min(P_node.item(idx), ff_max)
+            if ff < ff_max and P_node.item(idx) > 0:
                 tm = ff / (U * dz_s)
-            P_node[idx + 1] = max(P_node[idx] - ff, 0.0)
-            P_avg = 0.5 * (P_node[idx] + P_node[idx + 1])
+            np.put(P_node, idx + 1, max(P_node.item(idx) - ff, 0.0))
+            P_avg = 0.5 * (P_node.item(idx) + P_node.item(idx + 1))
             dw_el = (P_avg * dz_s) / (E * A)
-            w_total_node[idx + 1] = max(w_total_node[idx] - dw_el, 0.0)
+            np.put(w_total_node, idx + 1, max(w_total_node.item(idx) - dw_el, 0.0))
 
-        t_peak_seg[idx] = t_p
-        t_res_seg[idx] = t_r
-        t_mob_seg[idx] = tm
-        F_fric_seg[idx] = ff
-        dw_elastic_seg[idx] = dw_el
+        np.put(t_peak_seg, idx, t_p)
+        np.put(t_res_seg, idx, t_r)
+        np.put(t_mob_seg, idx, tm)
+        np.put(F_fric_seg, idx, ff)
+        np.put(dw_elastic_seg, idx, dw_el)
         state_seg[idx] = st_txt
 
     w_elastic_node = np.append(np.cumsum(dw_elastic_seg[::-1])[::-1], 0.0)
     w_fric_node = np.maximum(w_total_node - w_elastic_node, 0.0)
     cum_fric_seg = np.cumsum(F_fric_seg)
-    q_base = float(P_node[-1]) / A
+    q_base = float(P_node.item(-1)) / A
 
     return (
         depths,
@@ -205,16 +189,14 @@ def run_pile_model_partial_load(layers_df, E, D, target_P0):
 
 def find_max_friction_load_zero_base(layers_df, E, D):
     U = np.pi * D
-    depths = [0.0] + layers_df["Bottom Depth (m)"].tolist()
+    depths = [0.0] + layers_df.get("Bottom Depth (m)").tolist()
     n_s = len(layers_df)
 
     max_possible_P = 0.0
     for idx in range(n_s):
         dz_s = max(depths[idx + 1] - depths[idx], 0.01)
         sig_h = layers_df.at[idx, "Initial Pressuremeter σ'h (kPa)"]
-        t_p = sig_h * np.tan(
-            np.radians(layers_df.at[idx, "Peak Friction δ_peak (°)"])
-        )
+        t_p = sig_h * np.tan(np.radians(layers_df.at[idx, "Peak Friction δ_peak (°)"]))
         max_possible_P += U * dz_s * t_p
 
     if max_possible_P <= 0:
@@ -225,7 +207,7 @@ def find_max_friction_load_zero_base(layers_df, E, D):
         mid_P = 0.5 * (low_P + high_P)
         res = run_pile_model_partial_load(layers_df, E, D, mid_P)
         P_node_res = res[4]
-        if float(P_node_res[-1]) <= 1e-3:
+        if float(P_node_res.item(-1)) <= 1e-3:
             low_P = mid_P
         else:
             high_P = mid_P
@@ -234,20 +216,12 @@ def find_max_friction_load_zero_base(layers_df, E, D):
 
 
 def run_pile_model_from_base(
-    layers_df,
-    E,
-    D,
-    w_base_m,
-    base_model_type,
-    B_parab,
-    q_ult_hyp,
-    k_init_hyp,
-    base_table_df,
+    layers_df, E, D, w_base_m, base_model_type, B_parab, q_ult_hyp, k_init_hyp, base_table_df
 ):
-    A = np.pi * (D**2) / 4.0
+    A = np.pi * (D ** 2) / 4.0
     U = np.pi * D
     num_layers = len(layers_df)
-    depths = [0.0] + layers_df["Bottom Depth (m)"].tolist()
+    depths = [0.0] + layers_df.get("Bottom Depth (m)").tolist()
 
     w_total_node = np.zeros(num_layers + 1)
     w_elastic_node = np.zeros(num_layers + 1)
@@ -260,16 +234,12 @@ def run_pile_model_from_base(
     dw_elastic_seg = np.zeros(num_layers)
     state_seg = [""] * num_layers
 
-    w_total_node[num_layers] = w_base_m
-    w_elastic_node[num_layers] = 0.0
-    P_node[num_layers] = calc_base_load(
-        w_base_m,
-        base_model_type,
-        A,
-        B_parab,
-        q_ult_hyp,
-        k_init_hyp,
-        base_table_df,
+    np.put(w_total_node, num_layers, w_base_m)
+    np.put(w_elastic_node, num_layers, 0.0)
+    np.put(
+        P_node,
+        num_layers,
+        calc_base_load(w_base_m, base_model_type, A, B_parab, q_ult_hyp, k_init_hyp, base_table_df),
     )
 
     for i in range(num_layers - 1, -1, -1):
@@ -283,29 +253,29 @@ def run_pile_model_from_base(
         t_p = sig_h * np.tan(np.radians(d_peak))
         t_r = sig_h * np.tan(np.radians(d_res))
 
-        w_top_est = w_total_node[i + 1] + (P_node[i + 1] * dz) / (E * A)
-        w_mid = 0.5 * (w_total_node[i + 1] + w_top_est)
+        w_top_est = w_total_node.item(i + 1) + (P_node.item(i + 1) * dz) / (E * A)
+        w_mid = 0.5 * (w_total_node.item(i + 1) + w_top_est)
 
         t_mob, state = calc_shear_stress(w_mid, t_p, t_r, w_p, w_r)
         F_fric = U * dz * t_mob
 
-        P_node[i] = P_node[i + 1] + F_fric
-        P_mean = 0.5 * (P_node[i] + P_node[i + 1])
+        np.put(P_node, i, P_node.item(i + 1) + F_fric)
+        P_mean = 0.5 * (P_node.item(i) + P_node.item(i + 1))
 
         dw_el = (P_mean * dz) / (E * A)
-        dw_elastic_seg[i] = dw_el
-        w_elastic_node[i] = w_elastic_node[i + 1] + dw_el
-        w_total_node[i] = w_total_node[i + 1] + dw_el
+        np.put(dw_elastic_seg, i, dw_el)
+        np.put(w_elastic_node, i, w_elastic_node.item(i + 1) + dw_el)
+        np.put(w_total_node, i, w_total_node.item(i + 1) + dw_el)
 
-        t_peak_seg[i] = t_p
-        t_res_seg[i] = t_r
-        t_mob_seg[i] = t_mob
-        F_fric_seg[i] = F_fric
+        np.put(t_peak_seg, i, t_p)
+        np.put(t_res_seg, i, t_r)
+        np.put(t_mob_seg, i, t_mob)
+        np.put(F_fric_seg, i, F_fric)
         state_seg[i] = state
 
     w_fric_node = np.maximum(w_total_node - w_elastic_node, 0.0)
     cum_fric_seg = np.cumsum(F_fric_seg)
-    q_base = float(P_node[-1]) / A
+    q_base = float(P_node.item(-1)) / A
 
     return (
         depths,
@@ -324,13 +294,9 @@ def run_pile_model_from_base(
     )
 
 
-def plot_pile_soil_cross_section(
-    layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base
-):
+def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base):
     fig, ax = plt.subplots(figsize=(5.6, 6.2))
     max_depth = depths[-1]
-    fallback_colors = [
-        "#fdebd0",
-        "#fad7a0",
-        "#f5cba7",
-        "#edbb99",
+    fallback_colors = ("#fdebd0", "#fad7a0", "#f5cba7", "#edbb99", "#e59866", "#d5dbdb")
+
+    for i in range(len(layers_df)):
