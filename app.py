@@ -742,4 +742,4 @@ if len(layers_df) > 0:
 
         ws_res = writer.sheets.get("Summary & Results")
         prof_fmt = workbook.add_format({"bold": True, "font_size": 16, "font_color": "#1f497d", "font_name": "Times New Roman"})
-        )
+        
