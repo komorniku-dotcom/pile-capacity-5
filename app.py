@@ -299,14 +299,14 @@ def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_
     max_depth = depths[-1]
     fallback_colors = ("#fdebd0", "#fad7a0", "#f5cba7", "#edbb99", "#e59866", "#d5dbdb")
 
-for i in range(len(layers_df)):
+    for i in range(len(layers_df)):
         z_top, z_bot = depths[i], depths[i + 1]
         dz = z_bot - z_top
         s_type = str(layers_df.at[i, "Soil Type"]).strip()
         sig_h = layers_df.at[i, "Initial Pressuremeter σ'h (kPa)"]
 
         color = SOIL_COLORS.get(s_type, fallback_colors[i % len(fallback_colors)])
-for key, val in SOIL_COLORS.items():
+        for key, val in SOIL_COLORS.items():
             if key.lower() in s_type.lower():
                 color = val
                 break
