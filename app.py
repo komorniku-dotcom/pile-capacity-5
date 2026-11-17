@@ -531,8 +531,8 @@ if len(layers_df) > 0:
             state_seg,
         ) = run_pile_model_partial_load(layers_df, E, D, target_P0)
     else:
-              low_wb, high_wb = 0.0, 0.5
-        for _ in range(55):
+            low_wb, high_wb = 0.0, 0.5
+            for _ in range(55):
             mid_wb = 0.5 * (low_wb + high_wb)
             res_tmp = run_pile_model_from_base(
                 layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
@@ -742,3 +742,4 @@ if len(layers_df) > 0:
 
         ws_res = writer.sheets.get("Summary & Results")
         prof_fmt = workbook.add_format({"bold": True, "font_size": 16, "font_color": "#1f497d", "font_name": "Times New Roman"})
+        )
