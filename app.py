@@ -481,31 +481,29 @@ if len(layers_df) > 0:
         cum_fric_list.append(float(cf.item(-1)))
 
     if P_max_user > F_fric_at_zero_base:
-        wb = 0.0001
-        step_wb = 0.0004
-        for _ in range(300):
+        wb_grid = np.linspace(0.0001, 0.15, 250)
+        last_w_mm = w0_tot_list[-1] if len(w0_tot_list) > 0 else 0.0
+        for wb in wb_grid:
             _, wt, we, wf, Pn, _, _, _, _, cf, _, _, _ = run_pile_model_from_base(
                 layers_df, E, D, wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
             )
             p_curr = float(Pn.item(0))
-            if p_curr > F_fric_at_zero_base:
+            w_curr_mm = float(wt.item(0) * 1000.0)
+            if w_curr_mm > last_w_mm and p_curr >= F_fric_at_zero_base * 0.85:
                 P0_list.append(p_curr)
-                w0_tot_list.append(float(wt.item(0) * 1000.0))
+                w0_tot_list.append(w_curr_mm)
                 w0_el_list.append(float(we.item(0) * 1000.0))
                 w0_fr_list.append(float(wf.item(0) * 1000.0))
                 Pbase_list.append(float(Pn.item(-1)))
                 cum_fric_list.append(float(cf.item(-1)))
+                last_w_mm = w_curr_mm
 
-            if p_curr >= P_max_user or wb >= 0.5:
+            if p_curr >= P_max_user:
                 break
-            wb += step_wb
-            if wb > 0.02:
-                step_wb = 0.002
-            if wb > 0.10:
-                step_wb = 0.005
 
     st.markdown("---")
     st.subheader("2. Interactive Load Evaluation & Simulation Results")
+
     target_P0 = st.slider(
         "Select Evaluation Head Load P0 (kN):",
         min_value=0.0,
