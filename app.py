@@ -514,7 +514,7 @@ if len(layers_df) > 0:
         step=10.0,
     )
 
-   if target_P0 <= F_fric_at_zero_base:
+    if target_P0 <= F_fric_at_zero_base:
         (
             depths,
             w_total_node,
