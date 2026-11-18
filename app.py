@@ -658,7 +658,7 @@ if len(layers_df) > 0:
             key="sim_max_load_input",
         )
     run_10_steps_btn = st.button("Run 10-Step Load Test Simulation", type="primary")
-        fig_10_for_excel = None
+    fig_10_for_excel = None
 
     if run_10_steps_btn or "sim_10_df" in st.session_state:
         step_loads = np.linspace(0.0, sim_max_load, 11)
