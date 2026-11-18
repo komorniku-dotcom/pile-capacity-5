@@ -896,7 +896,7 @@ if len(layers_df) > 0:
             ws_charts.write(1, 0, "Pile Analysis Graphical Output", title_fmt)
             ws_charts.set_landscape()
             ws_charts.fit_to_pages(1, 3)
-
+ 
             chart_list = [
             (fig_soil, "A4", 0.65),
             (fig_ls, "I4", 0.65),
