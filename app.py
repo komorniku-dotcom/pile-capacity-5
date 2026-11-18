@@ -903,7 +903,7 @@ if len(layers_df) > 0:
     if fig_10_for_excel is not None:
             chart_list.append((fig_10_for_excel, "I30", 0.65))
 
-        for idx_c, (fig_obj, cell_pos, scale_val) in enumerate(chart_list):
+    for idx_c, (fig_obj, cell_pos, scale_val) in enumerate(chart_list):
             img_buf = io.BytesIO()
             fig_obj.savefig(img_buf, format="png", dpi=180, bbox_inches="tight")
             img_buf.seek(0)
