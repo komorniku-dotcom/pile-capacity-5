@@ -878,7 +878,7 @@ if len(layers_df) > 0:
         ws_curve.write(1, 0, "Calculated Load-Settlement Curve Points", title_fmt)
         ws_curve.set_column("A:F", 24)
 
-       if "sim_10_df" in st.session_state:
+    if "sim_10_df" in st.session_state:
             sim_export_df = st.session_state["sim_10_df"]
             sim_export_df.to_excel(writer, sheet_name="10-Step Simulation", startrow=2, index=False)
             ws_sim = writer.sheets.get("10-Step Simulation")
