@@ -714,6 +714,7 @@ if len(layers_df) > 0:
             ax_10.legend(fontsize=8.5)
             plt.tight_layout()
             st.pyplot(fig_10)
+            fig_10_for_excel = fig_10
 
             st.session_state["fig_10_export"] = fig_10
             fig_10_for_excel = fig_10
@@ -902,7 +903,7 @@ if len(layers_df) > 0:
             (fig_comb, "A30", 0.65),
             (fig_ds, "A55", 0.65),
         ]
-    if fig_10_for_excel is not None:
+            if fig_10_for_excel is not None:
             chart_list.append((fig_10_for_excel, "I30", 0.65))
 
     for idx_c, (fig_obj, cell_pos, scale_val) in enumerate(chart_list):
