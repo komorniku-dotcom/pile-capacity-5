@@ -888,11 +888,11 @@ if len(layers_df) > 0:
             ws_sim.set_landscape()
             ws_sim.fit_to_pages(1, 0)
 
-        ws_charts = workbook.add_worksheet("Engineering Charts")
-        ws_charts.write(0, 0, "Prof. Uri Komornik", prof_fmt)
-        ws_charts.write(1, 0, "Pile Analysis Graphical Output", title_fmt)
-        ws_charts.set_landscape()
-        ws_charts.fit_to_pages(1, 3)
+            ws_charts = workbook.add_worksheet("Engineering Charts")
+            ws_charts.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+            ws_charts.write(1, 0, "Pile Analysis Graphical Output", title_fmt)
+            ws_charts.set_landscape()
+            ws_charts.fit_to_pages(1, 3)
 
         chart_list = [
             (fig_soil, "A4", 0.65),
