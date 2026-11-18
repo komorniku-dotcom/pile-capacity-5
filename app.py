@@ -725,19 +725,19 @@ if len(layers_df) > 0:
         summary_df = pd.DataFrame.from_records(summary_rows, columns=("Parameter", "Value"))
         summary_df.to_excel(writer, sheet_name="Summary & Results", startrow=2, index=False)
 
-            export_layers_df = pd.DataFrame({
-            "Layer": range(1, len(layers_df) + 1),
-            "Soil Type": layers_df.get("Soil Type"),
-            "Depth (m)": [f"{depths[i]:.1f} - {depths[i+1]:.1f}" for i in range(len(layers_df))],
-            "Total Disp (mm)": w_total_node[:-1] * 1000.0,
-            "Elastic Shortening (mm)": dw_elastic_seg * 1000.0,
-            "Friction Disp (mm)": w_fric_node[:-1] * 1000.0,
-            "Peak Shear (kPa)": t_peak_seg,
-            "Residual Shear (kPa)": t_res_seg,
-            "Mobilized Shear (kPa)": t_mob_seg,
-            "Layer Friction (kN)": F_fric_seg,
-            "Axial Load at Top (kN)": P_node[:-1],
-            "State": state_seg,
+        export_layers_df = pd.DataFrame({
+        "Layer": range(1, len(layers_df) + 1),
+        "Soil Type": layers_df.get("Soil Type"),
+        "Depth (m)": [f"{depths[i]:.1f} - {depths[i+1]:.1f}" for i in range(len(layers_df))],
+        "Total Disp (mm)": w_total_node[:-1] * 1000.0,
+        "Elastic Shortening (mm)": dw_elastic_seg * 1000.0,
+        "Friction Disp (mm)": w_fric_node[:-1] * 1000.0,
+        "Peak Shear (kPa)": t_peak_seg,
+        "Residual Shear (kPa)": t_res_seg,
+        "Mobilized Shear (kPa)": t_mob_seg,
+        "Layer Friction (kN)": F_fric_seg,
+        "Axial Load at Top (kN)": P_node[:-1],
+        "State": state_seg,
         })
         export_layers_df.to_excel(writer, sheet_name="Summary & Results", startrow=17, index=False)
 
