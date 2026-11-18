@@ -685,11 +685,11 @@ if len(layers_df) > 0:
             st.dataframe(sim_10_df, use_container_width=True, hide_index=True)
 
         with c_plt10:
-            fig_10, ax_10 = plt.subplots(figsize=(6.2, 4.5))
-            ax_10.plot(w0_tot_list, P0_list, color="#aeb6bf", linestyle="--", linewidth=1.5, label="Continuous Model Curve")
+                        fig_10, ax_10 = plt.subplots(figsize=(6.2, 4.5))
+            ax_10.plot(P0_list, w0_tot_list, color="#aeb6bf", linestyle="--", linewidth=1.5, label="Continuous Model Curve")
             ax_10.plot(
-                sim_10_df["Head Settlement w0 (mm)"],
                 sim_10_df["Achieved Load P0 (kN)"],
+                sim_10_df["Head Settlement w0 (mm)"],
                 "s-",
                 color="#d35400",
                 linewidth=2.2,
@@ -698,21 +698,23 @@ if len(layers_df) > 0:
             )
             if len(clean_field) > 0:
                 ax_10.plot(
-                    clean_field["Measured Head Settlement w0 (mm)"],
                     clean_field["Measured Head Load P0 (kN)"],
+                    clean_field["Measured Head Settlement w0 (mm)"],
                     "o-",
                     color="#8e44ad",
                     linewidth=2.0,
                     markersize=6,
                     label="Field Load Test (Measured)",
                 )
-            ax_10.set_xlabel("Pile Head Settlement w0 (mm)", fontname="Times New Roman")
-            ax_10.set_ylabel("Pile Head Load P0 (kN)", fontname="Times New Roman")
+            ax_10.invert_yaxis()
+            ax_10.set_xlabel("Pile Head Load P0 (kN)", fontname="Times New Roman")
+            ax_10.set_ylabel("Pile Head Settlement w0 (mm)", fontname="Times New Roman")
             ax_10.set_title("10-Step Simulated Load Test vs. Field Data", fontname="Times New Roman", fontweight="bold")
             ax_10.grid(True, linestyle="--", alpha=0.5)
             ax_10.legend(fontsize=8.5)
             plt.tight_layout()
             st.pyplot(fig_10)
+
             st.session_state["fig_10_export"] = fig_10
             fig_10_for_excel = fig_10
 
