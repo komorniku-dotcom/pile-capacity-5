@@ -296,6 +296,8 @@ def run_pile_model_from_base(
 
 def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base):
     fig, ax = plt.subplots(figsize=(5.6, 6.2))
+   def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base):
+    fig, ax = plt.subplots(figsize=(5.6, 6.2))
     max_depth = depths[-1]
     fallback_colors = ("#fdebd0", "#fad7a0", "#f5cba7", "#edbb99", "#e59866", "#d5dbdb")
 
@@ -306,3 +308,220 @@ def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_
         sig_h = layers_df.at[i, "Initial Pressuremeter σ'h (kPa)"]
 
         color = SOIL_COLORS.get(s_type, fallback_colors[i % len(fallback_colors)])
+        for key, val in SOIL_COLORS.items():
+            if key.lower() in s_type.lower():
+                color = val
+                break
+
+        rect_soil = patches.Rectangle((-3.0, z_top), 6.0, dz, facecolor=color, edgecolor="white", linewidth=1.2, alpha=0.9)
+        ax.add_patch(rect_soil)
+
+        z_mid = 0.5 * (z_top + z_bot)
+        ax.text(-2.85, z_mid, f"{s_type}\nσ'h = {sig_h:.0f} kPa", va="center", ha="left", fontsize=8.5, fontweight="bold", color="#2c3e50")
+        ax.text(2.85, z_mid, f"t = {t_mob_seg.item(i):.1f} kPa\n[{state_seg[i]}]", va="center", ha="right", fontsize=8, color="#1a5276")
+
+    pile_half_w = 0.45
+    rect_pile = patches.Rectangle((-pile_half_w, 0.0), pile_half_w * 2, max_depth, facecolor="#7f8c8d", edgecolor="#2c3e50", linewidth=2, zorder=4)
+    ax.add_patch(rect_pile)
+
+    p_head_val = float(P_node.item(0))
+    ax.annotate(
+        f"P0 = {p_head_val:,.0f} kN",
+        xy=(0, 0),
+        xytext=(0, -max_depth * 0.12),
+        ha="center",
+        va="bottom",
+        fontsize=9.5,
+        fontweight="bold",
+        color="#c0392b",
+        arrowprops=dict(facecolor="#c0392b", edgecolor="#c0392b", width=2.5, headwidth=8),
+    )
+
+    ax.annotate(
+        f"P_base = {float(P_node.item(-1)):,.0f} kN (q = {q_base:,.0f} kPa)",
+        xy=(0, max_depth),
+        xytext=(0, max_depth + max_depth * 0.13),
+        ha="center",
+        va="top",
+        fontsize=8.5,
+        fontweight="bold",
+        color="#117864",
+        arrowprops=dict(facecolor="#117864", edgecolor="#117864", width=2, headwidth=7),
+    )
+
+    ax.set_xlim(-3.0, 3.0)
+    ax.set_ylim(max_depth + max_depth * 0.18, -max_depth * 0.18)
+    ax.set_xticks([])
+    ax.set_ylabel("Depth (m)", fontname="Times New Roman")
+    ax.set_title(f"Pile Cross-Section (D = {D}m, L = {max_depth:.1f}m)", fontsize=11, fontweight="bold", fontname="Times New Roman")
+
+    plt.tight_layout()
+    return fig
+
+
+def build_preset_df(preset_name, f_peak, f_res):
+    cols = (
+        "Bottom Depth (m)",
+        "Soil Type",
+        "Initial Pressuremeter σ'h (kPa)",
+        "Peak Friction δ_peak (°)",
+        "Peak Disp w_peak (mm)",
+        "Residual Friction δ_res (°)",
+        "Residual Disp w_res (mm)",
+    )
+    if preset_name == "Multi-layer (Fill, Silt, Marl, Clay, Dense Sand)":
+        rows = (
+            (1.0, "Fill", 40.0, round(25.0 * f_peak, 1), 4.0, round(24.0 * f_res, 1), 9.0),
+            (2.0, "Fill", 45.0, round(25.0 * f_peak, 1), 4.0, round(24.0 * f_res, 1), 9.0),
+            (3.0, "Silt", 55.0, round(27.0 * f_peak, 1), 3.5, round(23.0 * f_res, 1), 8.5),
+            (4.0, "Silt", 65.0, round(27.0 * f_peak, 1), 3.5, round(23.0 * f_res, 1), 8.5),
+            (5.0, "Marl", 85.0, round(29.0 * f_peak, 1), 3.0, round(22.0 * f_res, 1), 9.0),
+            (6.0, "Marl", 95.0, round(29.0 * f_peak, 1), 3.0, round(22.0 * f_res, 1), 9.0),
+            (7.0, "Clay", 105.0, round(24.0 * f_peak, 1), 3.0, round(16.0 * f_res, 1), 10.0),
+            (8.0, "Dense Sand", 130.0, round(35.8 * f_peak, 1), 2.0, round(30.1 * f_res, 1), 6.0),
+            (9.0, "Dense Sand", 145.0, round(35.8 * f_peak, 1), 2.0, round(30.1 * f_res, 1), 6.0),
+            (10.0, "Dense Sand", 160.0, round(35.8 * f_peak, 1), 2.0, round(30.1 * f_res, 1), 6.0),
+        )
+        return pd.DataFrame.from_records(rows, columns=cols)
+
+    params = {
+        "Dense Sand": (80.0, 10.0, 35.8, 2.0, 30.1, 6.0),
+        "Loose Sand": (50.0, 5.0, 28.0, 3.5, 26.5, 8.0),
+        "Marl": (75.0, 8.0, 29.0, 3.0, 22.0, 9.0),
+        "Silt": (55.0, 6.0, 27.0, 3.5, 23.0, 8.5),
+        "Clay": (60.0, 5.0, 24.0, 3.0, 16.0, 10.0),
+    }
+    s0, ds, dp, wp, dr, wr = params.get(preset_name)
+    rows = tuple(
+        (float(i + 1), preset_name, s0 + i * ds, round(dp * f_peak, 1), wp, round(dr * f_res, 1), wr)
+        for i in range(10)
+    )
+    return pd.DataFrame.from_records(rows, columns=cols)
+
+
+st.sidebar.header("1. Pile Properties & Soil Preset")
+pile_mat = st.sidebar.selectbox("Pile Material", ("Concrete", "Steel", "HDPE Plastic", "Wood"))
+e_map = {"Concrete": 30000000, "Steel": 210000000, "HDPE Plastic": 1500000, "Wood": 11000000}
+default_E = e_map.get(pile_mat)
+E = st.sidebar.number_input("Elastic Modulus E (kPa)", value=default_E, step=1000000)
+D = st.sidebar.number_input("Pile Diameter D (m)", min_value=0.2, max_value=3.0, value=0.6, step=0.05)
+L_pile = st.sidebar.number_input("Pile Length L (m)", min_value=1.0, max_value=100.0, value=10.0, step=0.5)
+
+soil_preset = st.sidebar.selectbox(
+    "Soil Profile Preset",
+    ("Multi-layer (Fill, Silt, Marl, Clay, Dense Sand)", "Dense Sand", "Loose Sand", "Clay", "Marl", "Silt"),
+)
+
+f_map = {"Concrete": (1.0, 1.0), "Steel": (0.67, 0.76), "HDPE Plastic": (0.45, 0.55), "Wood": (0.85, 0.85)}
+f_peak, f_res = f_map.get(pile_mat)
+default_layers = build_preset_df(soil_preset, f_peak, f_res)
+default_layers["Bottom Depth (m)"] = (default_layers["Bottom Depth (m)"] * (L_pile / 10.0)).round(2)
+
+st.sidebar.markdown("---")
+st.sidebar.header("2. Load Range & Base Resistance")
+P_max_user = st.sidebar.number_input("Max Load for Curve P_max (kN):", min_value=100.0, max_value=50000.0, value=5000.0, step=100.0)
+
+base_model_type = st.sidebar.radio(
+    "Base Resistance Model:",
+    ("Hyperbolic (Classic Load Test)", "Parabolic (B * sqrt(w))", "Custom Load Test Table"),
+)
+
+B_parab, q_ult_hyp, k_init_hyp = 1500.0, 3500.0, 150000.0
+base_rows = ((0.0, 0.0), (2.0, 180.0), (5.0, 380.0), (10.0, 620.0), (20.0, 900.0), (40.0, 1150.0), (80.0, 1300.0))
+default_base_table = pd.DataFrame.from_records(base_rows, columns=("Base Settlement (mm)", "Base Load (kN)"))
+
+if base_model_type == "Hyperbolic (Classic Load Test)":
+    q_ult_hyp = st.sidebar.number_input("Ultimate Base Stress q_ult (kPa)", value=3500.0, step=250.0)
+    k_init_hyp = st.sidebar.number_input("Initial Base Stiffness k_init (kPa/m)", value=150000.0, step=10000.0)
+elif base_model_type == "Parabolic (B * sqrt(w))":
+    B_parab = st.sidebar.number_input("Parabolic Base Factor B (kN/m^0.5)", value=1500.0, step=100.0)
+else:
+    st.sidebar.write("Edit Base Load Test Table:")
+    default_base_table = st.sidebar.data_editor(default_base_table, num_rows="dynamic", hide_index=True)
+
+st.subheader("1. Soil Layers Input Table (Editable)")
+edited_df = st.data_editor(
+    default_layers,
+    num_rows="dynamic",
+    use_container_width=True,
+    hide_index=True,
+    column_config={
+        "Soil Type": st.column_config.SelectboxColumn("Soil Type", options=list(SOIL_COLORS.keys()), required=True)
+    },
+)
+
+with st.expander("Optional: Field Load Test Data for Comparison on Graph"):
+    field_rows = ((0.0, 0.0), (400.0, 1.2), (800.0, 3.1), (1200.0, 6.5), (1600.0, 14.0))
+    field_test_df = st.data_editor(
+        pd.DataFrame.from_records(field_rows, columns=("Measured Head Load P0 (kN)", "Measured Head Settlement w0 (mm)")),
+        num_rows="dynamic",
+        use_container_width=True,
+        hide_index=True,
+    )
+
+layers_df = (
+    edited_df.dropna(subset=["Bottom Depth (m)", "Initial Pressuremeter σ'h (kPa)"])
+    .sort_values(by="Bottom Depth (m)")
+    .reset_index(drop=True)
+)
+
+if len(layers_df) > 0:
+    F_fric_at_zero_base = find_max_friction_load_zero_base(layers_df, E, D)
+    P0_list, w0_tot_list, w0_el_list, w0_fr_list, Pbase_list, cum_fric_list = [], [], [], [], [], []
+    partial_loads = []
+
+    if F_fric_at_zero_base > 0:
+        partial_loads = np.linspace(0.0, min(F_fric_at_zero_base, P_max_user), 40)
+
+    for p_val in partial_loads:
+        _, wt, we, wf, Pn, _, _, _, _, cf, _, _, _ = run_pile_model_partial_load(layers_df, E, D, p_val)
+        P0_list.append(float(Pn.item(0)))
+        w0_tot_list.append(float(wt.item(0) * 1000.0))
+        w0_el_list.append(float(we.item(0) * 1000.0))
+        w0_fr_list.append(float(wf.item(0) * 1000.0))
+        Pbase_list.append(0.0)
+        cum_fric_list.append(float(cf.item(-1)))
+
+    if P_max_user > F_fric_at_zero_base:
+        wb_grid = np.linspace(0.0001, 0.15, 250)
+        last_w_mm = w0_tot_list[-1] if len(w0_tot_list) > 0 else 0.0
+        for wb in wb_grid:
+            _, wt, we, wf, Pn, _, _, _, _, cf, _, _, _ = run_pile_model_from_base(
+                layers_df, E, D, wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
+            )
+            p_curr = float(Pn.item(0))
+            w_curr_mm = float(wt.item(0) * 1000.0)
+            if w_curr_mm > last_w_mm and p_curr >= F_fric_at_zero_base * 0.85:
+                P0_list.append(p_curr)
+                w0_tot_list.append(w_curr_mm)
+                w0_el_list.append(float(we.item(0) * 1000.0))
+                w0_fr_list.append(float(wf.item(0) * 1000.0))
+                Pbase_list.append(float(Pn.item(-1)))
+                cum_fric_list.append(float(cf.item(-1)))
+                last_w_mm = w_curr_mm
+
+            if p_curr >= P_max_user:
+                break
+
+    st.markdown("---")
+    st.subheader("2. Interactive Load Evaluation & Simulation Results")
+
+    target_P0 = st.slider(
+        "Select Evaluation Head Load P0 (kN):",
+        min_value=0.0,
+        max_value=float(P_max_user),
+        value=min(round(F_fric_at_zero_base * 0.5, 1), float(P_max_user)),
+        step=10.0,
+    )
+
+    if target_P0 <= F_fric_at_zero_base:
+        (
+            depths,
+            w_total_node,
+            w_elastic_node,
+            w_fric_node,
+            P_node,
+            t_peak_seg,
+            t_res_seg,
+            t_mob_seg,
+ 
