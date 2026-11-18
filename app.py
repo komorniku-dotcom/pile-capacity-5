@@ -292,6 +292,39 @@ def run_pile_model_from_base(
         q_base,
         state_seg,
     )
+def evaluate_single_load_step(
+    layers_df, E, D, target_p, f_fric_zero_base, base_model_type, b_parab, q_ult_hyp, k_init_hyp, base_table_df
+):
+    if target_p <= f_fric_zero_base:
+        res = run_pile_model_partial_load(layers_df, E, D, target_p)
+        p_actual = float(res[4][0])
+        w_tot = float(res[1][0] * 1000.0)
+        w_el = float(res[2][0] * 1000.0)
+        w_fr = float(res[3][0] * 1000.0)
+        p_base = float(res[4][-1])
+        return p_actual, w_tot, w_el, w_fr, p_base, "OK (Friction)"
+
+    low_wb, high_wb = 0.0, 0.5
+    for _ in range(55):
+        mid_wb = 0.5 * (low_wb + high_wb)
+        res_tmp = run_pile_model_from_base(
+            layers_df, E, D, mid_wb, base_model_type, b_parab, q_ult_hyp, k_init_hyp, base_table_df
+        )
+        if float(res_tmp[4][0]) < target_p:
+            low_wb = mid_wb
+        else:
+            high_wb = mid_wb
+
+    res = run_pile_model_from_base(
+        layers_df, E, D, 0.5 * (low_wb + high_wb), base_model_type, b_parab, q_ult_hyp, k_init_hyp, base_table_df
+    )
+    p_actual = float(res[4][0])
+    w_tot = float(res[1][0] * 1000.0)
+    w_el = float(res[2][0] * 1000.0)
+    w_fr = float(res[3][0] * 1000.0)
+    p_base = float(res[4][-1])
+    status = "Plunging Failure!" if target_p > p_actual + 5.0 else "OK (Shaft + Base)"
+    return p_actual, w_tot, w_el, w_fr, p_base, status
 
 
 def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base):
@@ -611,6 +644,74 @@ if len(layers_df) > 0:
     ax_a.legend(fontsize=8)
     plt.tight_layout()
     c_curve.pyplot(fig_ls)
+    st.markdown("---")
+    st.subheader("2B. 10-Increment Simulated Load Test vs. Field Test")
+
+    col_sim1, col_sim2 = st.columns([1.2, 1.8])
+    with col_sim1:
+        sim_max_load = st.number_input(
+            "Enter Maximum Load for 10-Step Simulation (kN):",
+            min_value=50.0,
+            max_value=50000.0,
+            value=float(P_max_user),
+            step=100.0,
+            key="sim_max_load_input",
+        )
+        run_10_steps_btn = st.button("Run 10-Step Load Test Simulation", type="primary")
+
+    if run_10_steps_btn or "sim_10_df" in st.session_state:
+        step_loads = np.linspace(0.0, sim_max_load, 11)
+        sim_records = []
+        for step_idx, p_req in enumerate(step_loads):
+            p_act, wt_mm, we_mm, wf_mm, pb_kn, st_msg = evaluate_single_load_step(
+                layers_df, E, D, p_req, F_fric_at_zero_base, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
+            )
+            sim_records.append({
+                "Step": step_idx,
+                "Target Load (kN)": round(float(p_req), 1),
+                "Achieved Load P0 (kN)": round(p_act, 1),
+                "Head Settlement w0 (mm)": round(wt_mm, 2),
+                "Elastic Comp. (mm)": round(we_mm, 2),
+                "Soil/Base Disp. (mm)": round(wf_mm, 2),
+                "Base Load P_base (kN)": round(pb_kn, 1),
+                "Status": st_msg,
+            })
+        st.session_state["sim_10_df"] = pd.DataFrame(sim_records)
+
+        sim_10_df = st.session_state["sim_10_df"]
+        c_tbl10, c_plt10 = st.columns([1.25, 1.15])
+        with c_tbl10:
+            st.dataframe(sim_10_df, use_container_width=True, hide_index=True)
+
+        with c_plt10:
+            fig_10, ax_10 = plt.subplots(figsize=(6.2, 4.5))
+            ax_10.plot(w0_tot_list, P0_list, color="#aeb6bf", linestyle="--", linewidth=1.5, label="Continuous Model Curve")
+            ax_10.plot(
+                sim_10_df["Head Settlement w0 (mm)"],
+                sim_10_df["Achieved Load P0 (kN)"],
+                "s-",
+                color="#d35400",
+                linewidth=2.2,
+                markersize=7,
+                label="10-Step Simulated Test",
+            )
+            if len(clean_field) > 0:
+                ax_10.plot(
+                    clean_field["Measured Head Settlement w0 (mm)"],
+                    clean_field["Measured Head Load P0 (kN)"],
+                    "o-",
+                    color="#8e44ad",
+                    linewidth=2.0,
+                    markersize=6,
+                    label="Field Load Test (Measured)",
+                )
+            ax_10.set_xlabel("Pile Head Settlement w0 (mm)", fontname="Times New Roman")
+            ax_10.set_ylabel("Pile Head Load P0 (kN)", fontname="Times New Roman")
+            ax_10.set_title("10-Step Simulated Load Test vs. Field Data", fontname="Times New Roman", fontweight="bold")
+            ax_10.grid(True, linestyle="--", alpha=0.5)
+            ax_10.legend(fontsize=8.5)
+            plt.tight_layout()
+            st.pyplot(fig_10)
 
     st.markdown("---")
     st.subheader("3. Combined Depth Profile: Axial Load & Settlement Along the Pile")
