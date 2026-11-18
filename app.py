@@ -296,7 +296,7 @@ def run_pile_model_from_base(
 
 def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base):
     fig, ax = plt.subplots(figsize=(5.6, 6.2))
-   def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base):
+def plot_pile_soil_cross_section(layers_df, depths, D, P_node, t_mob_seg, state_seg, q_base):
     fig, ax = plt.subplots(figsize=(5.6, 6.2))
     max_depth = depths[-1]
     fallback_colors = ("#fdebd0", "#fad7a0", "#f5cba7", "#edbb99", "#e59866", "#d5dbdb")
