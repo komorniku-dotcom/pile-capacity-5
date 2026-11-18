@@ -685,7 +685,7 @@ if len(layers_df) > 0:
             st.dataframe(sim_10_df, use_container_width=True, hide_index=True)
 
         with c_plt10:
-                        fig_10, ax_10 = plt.subplots(figsize=(6.2, 4.5))
+            fig_10, ax_10 = plt.subplots(figsize=(6.2, 4.5))
             ax_10.plot(P0_list, w0_tot_list, color="#aeb6bf", linestyle="--", linewidth=1.5, label="Continuous Model Curve")
             ax_10.plot(
                 sim_10_df["Achieved Load P0 (kN)"],
