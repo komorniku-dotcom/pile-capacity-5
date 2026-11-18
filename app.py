@@ -725,7 +725,7 @@ if len(layers_df) > 0:
         summary_df = pd.DataFrame.from_records(summary_rows, columns=("Parameter", "Value"))
         summary_df.to_excel(writer, sheet_name="Summary & Results", startrow=2, index=False)
 
-        export_layers_df = pd.DataFrame({
+            export_layers_df = pd.DataFrame({
             "Layer": range(1, len(layers_df) + 1),
             "Soil Type": layers_df.get("Soil Type"),
             "Depth (m)": [f"{depths[i]:.1f} - {depths[i+1]:.1f}" for i in range(len(layers_df))],
@@ -735,3 +735,74 @@ if len(layers_df) > 0:
             "Peak Shear (kPa)": t_peak_seg,
             "Residual Shear (kPa)": t_res_seg,
             "Mobilized Shear (kPa)": t_mob_seg,
+            "Layer Friction (kN)": F_fric_seg,
+            "Axial Load at Top (kN)": P_node[:-1],
+            "State": state_seg,
+        })
+        export_layers_df.to_excel(writer, sheet_name="Summary & Results", startrow=17, index=False)
+
+        ws_res = writer.sheets.get("Summary & Results")
+        prof_fmt = workbook.add_format({"bold": True, "font_size": 16, "font_color": "#2e86c1", "font_name": "Times New Roman"})
+        title_fmt = workbook.add_format({"bold": True, "font_size": 13, "font_color": "#1f497d", "font_name": "Times New Roman"})
+
+        ws_res.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+        ws_res.write(1, 0, "Pile Geomechanical Analysis Report", title_fmt)
+        ws_res.set_column("A:B", 28)
+        ws_res.set_column("C:L", 16)
+        ws_res.set_landscape()
+        ws_res.fit_to_pages(1, 0)
+
+        layers_df.to_excel(writer, sheet_name="Soil Input Data", startrow=2, index=False)
+        ws_in = writer.sheets.get("Soil Input Data")
+        ws_in.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+        ws_in.write(1, 0, "Input Soil Profile & Pressuremeter Parameters", title_fmt)
+        ws_in.set_column("A:G", 22)
+        ws_in.set_landscape()
+        ws_in.fit_to_pages(1, 0)
+
+        curve_df = pd.DataFrame({
+            "Head Load P0 (kN)": P0_list,
+            "Total Settlement w0 (mm)": w0_tot_list,
+            "Elastic Shortening (mm)": w0_el_list,
+            "Friction/Base Settlement (mm)": w0_fr_list,
+            "Base Load P_base (kN)": Pbase_list,
+            "Cumulative Friction (kN)": cum_fric_list,
+        })
+        curve_df.to_excel(writer, sheet_name="Load-Settlement Curve", startrow=2, index=False)
+        ws_curve = writer.sheets.get("Load-Settlement Curve")
+        ws_curve.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+        ws_curve.write(1, 0, "Calculated Load-Settlement Curve Points", title_fmt)
+        ws_curve.set_column("A:F", 24)
+
+        ws_charts = workbook.add_worksheet("Engineering Charts")
+        ws_charts.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+        ws_charts.write(1, 0, "Pile Analysis Graphical Output", title_fmt)
+        ws_charts.set_landscape()
+        ws_charts.fit_to_pages(1, 2)
+
+        chart_list = [
+            (fig_soil, "A4", 0.65),
+            (fig_ls, "I4", 0.65),
+            (fig_comb, "A30", 0.65),
+            (fig_ds, "A55", 0.65),
+        ]
+        for idx_c, (fig_obj, cell_pos, scale_val) in enumerate(chart_list):
+            img_buf = io.BytesIO()
+            fig_obj.savefig(img_buf, format="png", dpi=180, bbox_inches="tight")
+            img_buf.seek(0)
+            ws_charts.insert_image(
+                cell_pos,
+                f"chart_{idx_c}.png",
+                {
+                    "image_data": img_buf,
+                    "x_scale": scale_val,
+                    "y_scale": scale_val,
+                },
+            )
+
+    st.download_button(
+        label="Download Full Excel Report with Charts (.xlsx)",
+        data=excel_buffer.getvalue(),
+        file_name=f"Pile_Full_Report_D{D}_L{depths[-1]:.0f}m.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
