@@ -645,7 +645,7 @@ if len(layers_df) > 0:
     plt.tight_layout()
     c_curve.pyplot(fig_ls)
     st.markdown("---")
-    st.subheader("2B. 10-Increment Simulated Load Test vs. Field Test")
+    st.subheader("2B. 10-Increment Simulated Load Test vs. Field Test (Instrumented Pile)")
 
     col_sim1, col_sim2 = st.columns([1.2, 1.8])
     with col_sim1:
@@ -659,14 +659,47 @@ if len(layers_df) > 0:
         )
     run_10_steps_btn = st.button("Run 10-Step Load Test Simulation", type="primary")
     fig_10_for_excel = None
+    fig_10w_for_excel = None
+    fig_10s_for_excel = None
 
     if run_10_steps_btn or "sim_10_df" in st.session_state:
+        A_pile = np.pi * (D ** 2) / 4.0
         step_loads = np.linspace(0.0, sim_max_load, 11)
         sim_records = []
+        step_profiles = []
+
         for step_idx, p_req in enumerate(step_loads):
-            p_act, wt_mm, we_mm, wf_mm, pb_kn, st_msg = evaluate_single_load_step(
-                layers_df, E, D, p_req, F_fric_at_zero_base, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
-            )
+            if p_req <= F_fric_at_zero_base:
+                res_s = run_pile_model_partial_load(layers_df, E, D, p_req)
+            else:
+                low_wb, high_wb = 0.0, 0.5
+                for _ in range(55):
+                    mid_wb = 0.5 * (low_wb + high_wb)
+                    res_tmp = run_pile_model_from_base(
+                        layers_df, E, D, mid_wb, base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
+                    )
+                    if float(res_tmp[4][0]) < p_req:
+                        low_wb = mid_wb
+                    else:
+                        high_wb = mid_wb
+                res_s = run_pile_model_from_base(
+                    layers_df, E, D, 0.5 * (low_wb + high_wb), base_model_type, B_parab, q_ult_hyp, k_init_hyp, default_base_table
+                )
+
+            d_s = res_s[0]
+            wt_s = res_s[1]
+            we_s = res_s[2]
+            wf_s = res_s[3]
+            Pn_s = res_s[4]
+            qb_s = res_s[11]
+
+            p_act = float(Pn_s[0])
+            wt_mm = float(wt_s[0] * 1000.0)
+            we_mm = float(we_s[0] * 1000.0)
+            wf_mm = float(wf_s[0] * 1000.0)
+            pb_kn = float(Pn_s[-1])
+            st_msg = "OK (Friction)" if p_req <= F_fric_at_zero_base else ("Plunging Failure!" if p_req > p_act + 5.0 else "OK (Shaft + Base)")
+
             sim_records.append({
                 "Step": step_idx,
                 "Target Load (kN)": round(float(p_req), 1),
@@ -675,9 +708,21 @@ if len(layers_df) > 0:
                 "Elastic Comp. (mm)": round(we_mm, 2),
                 "Soil/Base Disp. (mm)": round(wf_mm, 2),
                 "Base Load P_base (kN)": round(pb_kn, 1),
+                "Base Stress q_base (kPa)": round(float(qb_s), 1),
                 "Status": st_msg,
             })
+
+            step_profiles.append({
+                "step": step_idx,
+                "P0": p_act,
+                "depths": d_s,
+                "w_mm": wt_s * 1000.0,
+                "sigma_kPa": Pn_s / A_pile,
+                "P_kN": Pn_s,
+            })
+
         st.session_state["sim_10_df"] = pd.DataFrame(sim_records)
+        st.session_state["sim_10_profiles"] = step_profiles
 
         sim_10_df = st.session_state["sim_10_df"]
         c_tbl10, c_plt10 = st.columns([1.25, 1.15])
@@ -716,10 +761,54 @@ if len(layers_df) > 0:
             st.pyplot(fig_10)
             fig_10_for_excel = fig_10
 
-            st.session_state["fig_10_export"] = fig_10
-            fig_10_for_excel = fig_10
+        st.markdown("#### Depth Profiles Across All 10 Load Steps (Including Pile Toe / Base)")
+        col_10w, col_10s = st.columns(2)
+        cmap_steps = plt.get_cmap("viridis", len(step_profiles))
 
-    st.markdown("---")
+        with col_10w:
+            fig_10w, ax_10w = plt.subplots(figsize=(6.2, 5.2))
+            for idx_p, prof in enumerate(step_profiles):
+                ax_10w.plot(
+                    prof["w_mm"],
+                    prof["depths"],
+                    marker="o",
+                    markersize=4.5,
+                    linewidth=1.8,
+                    color=cmap_steps(idx_p),
+                    label=f"Step {prof['step']}: P0={prof['P0']:.0f} kN",
+                )
+            ax_10w.invert_yaxis()
+            ax_10w.set_xlabel("Axial Displacement w(z) [mm]", fontweight="bold", fontname="Times New Roman")
+            ax_10w.set_ylabel("Depth z [m]", fontweight="bold", fontname="Times New Roman")
+            ax_10w.set_title("Displacement Along Pile & Toe (All Load Steps)", fontweight="bold", fontname="Times New Roman")
+            ax_10w.grid(True, linestyle="--", alpha=0.5)
+            ax_10w.legend(fontsize=7.5, loc="lower right")
+            plt.tight_layout()
+            st.pyplot(fig_10w)
+            fig_10w_for_excel = fig_10w
+
+        with col_10s:
+            fig_10s, ax_10s = plt.subplots(figsize=(6.2, 5.2))
+            for idx_p, prof in enumerate(step_profiles):
+                ax_10s.plot(
+                    prof["sigma_kPa"],
+                    prof["depths"],
+                    marker="^",
+                    markersize=4.5,
+                    linewidth=1.8,
+                    color=cmap_steps(idx_p),
+                    label=f"Step {prof['step']}: P0={prof['P0']:.0f} kN",
+                )
+            ax_10s.invert_yaxis()
+            ax_10s.set_xlabel("Axial Stress σ(z) = P(z)/A [kPa]", fontweight="bold", fontname="Times New Roman")
+            ax_10s.set_ylabel("Depth z [m]", fontweight="bold", fontname="Times New Roman")
+            ax_10s.set_title("Axial Stress Along Pile & Toe (All Load Steps)", fontweight="bold", fontname="Times New Roman")
+            ax_10s.grid(True, linestyle="--", alpha=0.5)
+            ax_10s.legend(fontsize=7.5, loc="lower right")
+            plt.tight_layout()
+            st.pyplot(fig_10s)
+            fig_10s_for_excel = fig_10s
+
     st.subheader("3. Combined Depth Profile: Axial Load & Settlement Along the Pile")
     fig_comb, ax_load = plt.subplots(figsize=(10.5, 5.2))
 
@@ -881,32 +970,54 @@ if len(layers_df) > 0:
         ws_curve.write(1, 0, "Calculated Load-Settlement Curve Points", title_fmt)
         ws_curve.set_column("A:F", 24)
 
-    if "sim_10_df" in st.session_state:
+        if "sim_10_df" in st.session_state:
             sim_export_df = st.session_state["sim_10_df"]
             sim_export_df.to_excel(writer, sheet_name="10-Step Simulation", startrow=2, index=False)
             ws_sim = writer.sheets.get("10-Step Simulation")
             ws_sim.write(0, 0, "Prof. Uri Komornik", prof_fmt)
             ws_sim.write(1, 0, "10-Increment Simulated Load Test Results", title_fmt)
-            ws_sim.set_column("A:H", 22)
+            ws_sim.set_column("A:I", 20)
             ws_sim.set_landscape()
             ws_sim.fit_to_pages(1, 0)
 
-            ws_charts = workbook.add_worksheet("Engineering Charts")
-            ws_charts.write(0, 0, "Prof. Uri Komornik", prof_fmt)
-            ws_charts.write(1, 0, "Pile Analysis Graphical Output", title_fmt)
-            ws_charts.set_landscape()
-            ws_charts.fit_to_pages(1, 3)
- 
-            chart_list = [
+        if "sim_10_profiles" in st.session_state:
+            prof_rows = []
+            for prof in st.session_state["sim_10_profiles"]:
+                for z_val, w_val, sig_val, p_val in zip(prof["depths"], prof["w_mm"], prof["sigma_kPa"], prof["P_kN"]):
+                    prof_rows.append({
+                        "Step": prof["step"],
+                        "Head Load P0 (kN)": round(prof["P0"], 1),
+                        "Depth z (m)": round(float(z_val), 2),
+                        "Displacement w(z) (mm)": round(float(w_val), 3),
+                        "Axial Stress σ(z) (kPa)": round(float(sig_val), 1),
+                        "Axial Load P(z) (kN)": round(float(p_val), 1),
+                    })
+            pd.DataFrame(prof_rows).to_excel(writer, sheet_name="10-Step Depth Profiles", startrow=2, index=False)
+            ws_p10 = writer.sheets.get("10-Step Depth Profiles")
+            ws_p10.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+            ws_p10.write(1, 0, "Depth Profiles (Displacement & Stress) Across 10 Load Steps", title_fmt)
+            ws_p10.set_column("A:F", 22)
+
+        ws_charts = workbook.add_worksheet("Engineering Charts")
+        ws_charts.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+        ws_charts.write(1, 0, "Pile Analysis Graphical Output", title_fmt)
+        ws_charts.set_landscape()
+        ws_charts.fit_to_pages(1, 4)
+
+        chart_list = [
             (fig_soil, "A4", 0.65),
             (fig_ls, "I4", 0.65),
             (fig_comb, "A30", 0.65),
             (fig_ds, "A55", 0.65),
         ]
-            if fig_10_for_excel is not None:
-                chart_list.append((fig_10_for_excel, "I30", 0.65))
+        if fig_10_for_excel is not None:
+            chart_list.append((fig_10_for_excel, "I30", 0.65))
+        if fig_10w_for_excel is not None:
+            chart_list.append((fig_10w_for_excel, "A80", 0.65))
+        if fig_10s_for_excel is not None:
+            chart_list.append((fig_10s_for_excel, "I80", 0.65))
 
-    for idx_c, (fig_obj, cell_pos, scale_val) in enumerate(chart_list):
+        for idx_c, (fig_obj, cell_pos, scale_val) in enumerate(chart_list):
             img_buf = io.BytesIO()
             fig_obj.savefig(img_buf, format="png", dpi=180, bbox_inches="tight")
             img_buf.seek(0)
