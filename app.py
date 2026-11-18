@@ -903,7 +903,7 @@ if len(layers_df) > 0:
             (fig_comb, "A30", 0.65),
             (fig_ds, "A55", 0.65),
         ]
-        if fig_10_for_excel is not None:
+    if fig_10_for_excel is not None:
             chart_list.append((fig_10_for_excel, "I30", 0.65))
 
     for idx_c, (fig_obj, cell_pos, scale_val) in enumerate(chart_list):
