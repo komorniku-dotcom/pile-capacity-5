@@ -878,11 +878,21 @@ if len(layers_df) > 0:
         ws_curve.write(1, 0, "Calculated Load-Settlement Curve Points", title_fmt)
         ws_curve.set_column("A:F", 24)
 
+       if "sim_10_df" in st.session_state:
+            sim_export_df = st.session_state["sim_10_df"]
+            sim_export_df.to_excel(writer, sheet_name="10-Step Simulation", startrow=2, index=False)
+            ws_sim = writer.sheets.get("10-Step Simulation")
+            ws_sim.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+            ws_sim.write(1, 0, "10-Increment Simulated Load Test Results", title_fmt)
+            ws_sim.set_column("A:H", 22)
+            ws_sim.set_landscape()
+            ws_sim.fit_to_pages(1, 0)
+
         ws_charts = workbook.add_worksheet("Engineering Charts")
         ws_charts.write(0, 0, "Prof. Uri Komornik", prof_fmt)
         ws_charts.write(1, 0, "Pile Analysis Graphical Output", title_fmt)
         ws_charts.set_landscape()
-        ws_charts.fit_to_pages(1, 2)
+        ws_charts.fit_to_pages(1, 3)
 
         chart_list = [
             (fig_soil, "A4", 0.65),
@@ -890,6 +900,9 @@ if len(layers_df) > 0:
             (fig_comb, "A30", 0.65),
             (fig_ds, "A55", 0.65),
         ]
+        if fig_10_for_excel is not None:
+            chart_list.append((fig_10_for_excel, "I30", 0.65))
+
         for idx_c, (fig_obj, cell_pos, scale_val) in enumerate(chart_list):
             img_buf = io.BytesIO()
             fig_obj.savefig(img_buf, format="png", dpi=180, bbox_inches="tight")
