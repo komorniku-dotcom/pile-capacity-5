@@ -544,3 +544,5 @@ with st.expander("Optional: Field Uplift Load Test Data for Comparison on Graph"
 layers_df = (
     edited_df.dropna(subset=["Bottom Depth (m)", "Initial Pressuremeter σ'h (kPa)"])
     .sort_values(by="Bottom Depth (m)")
+    .reset_index(drop=True)
+)
