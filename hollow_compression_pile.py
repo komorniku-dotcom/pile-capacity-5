@@ -402,35 +402,35 @@ if len(layers_df) > 0:
     P_threshold_zero_toe = find_max_load_at_zero_base_disp(layers_df, E, D_out, t_wall, end_mode, H_plug, q_ult, k_base)
     P0_list, w0_tot_list, w0_el_list, w0_fr_list, Pbase_list, cum_fric_list = [], [], [], [], [], []
     partial_loads = np.linspace(0.0, min(P_threshold_zero_toe, P_max_user), 40) if P_threshold_zero_toe > 0 else []
-
     for p_val in partial_loads:
-        _, wt, we, wf, Pn, _, _, _, _, _, cf, _, _, pb, _ = run_hollow_compression_partial(
+        res_p = run_hollow_compression_partial(
             layers_df, E, D_out, t_wall, end_mode, H_plug, q_ult, k_base, p_val
         )
-        P0_list.append(float(Pn.item(0)))
-        w0_tot_list.append(float(wt.item(0) * 1000.0))
-        w0_el_list.append(float(we.item(0) * 1000.0))
-        w0_fr_list.append(float(wf.item(0) * 1000.0))
-        Pbase_list.append(float(pb))
-        cum_fric_list.append(float(cf.item(-1)))
+        P0_list.append(float(res_p[4].item(0)))
+        w0_tot_list.append(float(res_p[1].item(0) * 1000.0))
+        w0_el_list.append(float(res_p[2].item(0) * 1000.0))
+        w0_fr_list.append(float(res_p[3].item(0) * 1000.0))
+        Pbase_list.append(float(res_p[13]))
+        cum_fric_list.append(float(res_p[10].item(-1)))
 
     wb_grid = np.linspace(0.0001, 0.08, 220)
     peak_capacity = max(P0_list) if len(P0_list) > 0 else 0.0
     for wb in wb_grid:
-        _, wt, we, wf, Pn, _, _, _, _, _, cf, _, _, pb, _ = run_hollow_compression_from_base(
+        res_b = run_hollow_compression_from_base(
             layers_df, E, D_out, t_wall, end_mode, H_plug, q_ult, k_base, wb
         )
-        p_curr = float(Pn.item(0))
-        w_curr_mm = float(wt.item(0) * 1000.0)
+        p_curr = float(res_b[4].item(0))
+        w_curr_mm = float(res_b[1].item(0) * 1000.0)
         peak_capacity = max(peak_capacity, p_curr)
         P0_list.append(p_curr)
         w0_tot_list.append(w_curr_mm)
-        w0_el_list.append(float(we.item(0) * 1000.0))
-        w0_fr_list.append(float(wf.item(0) * 1000.0))
-        Pbase_list.append(float(pb))
-        cum_fric_list.append(float(cf.item(-1)))
+        w0_el_list.append(float(res_b[2].item(0) * 1000.0))
+        w0_fr_list.append(float(res_b[3].item(0) * 1000.0))
+        Pbase_list.append(float(res_b[13]))
+        cum_fric_list.append(float(res_b[10].item(-1)))
         if p_curr >= P_max_user and wb > 0.01:
             break
+
 
     st.markdown("---")
     st.subheader("2. Interactive Hollow Pile Evaluation & Plugging Analysis")
@@ -829,4 +829,82 @@ if len(layers_df) > 0:
         ws_in = writer.sheets["Soil Input Data"]
         ws_in.write(0, 0, "Prof. Uri Komornik", prof_fmt)
         ws_in.write(1, 0, "Input Soil Profile & Pressuremeter Parameters", title_fmt)
+        curve_df = pd.DataFrame({
+            "Head Load P0 (kN)": P0_list,
+            "Total Head Settlement w0 (mm)": w0_tot_list,
+            "Elastic Shortening (mm)": w0_el_list,
+            "Shaft/Base Slip (mm)": w0_fr_list,
+            "Base Load P_base (kN)": Pbase_list,
+            "Cumulative Shaft Friction (kN)": cum_fric_list,
+        })
+        curve_df.to_excel(writer, sheet_name="Load-Settlement Curve", startrow=2, index=False)
+        ws_curve = writer.sheets["Load-Settlement Curve"]
+        ws_curve.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+        ws_curve.write(1, 0, "Calculated Hollow Pile Load-Settlement Curve", title_fmt)
+        ws_curve.set_column("A:F", 24)
+
+        if "sim_h10_df" in st.session_state:
+            st.session_state["sim_h10_df"].to_excel(writer, sheet_name="10-Step Load Sim", startrow=2, index=False)
+            ws_sim = writer.sheets["10-Step Load Sim"]
+            ws_sim.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+            ws_sim.write(1, 0, "10-Increment Simulated Hollow Pile Load Test", title_fmt)
+            ws_sim.set_column("A:G", 20)
+
+        if "sim_h10_profiles" in st.session_state and len(st.session_state["sim_h10_profiles"]) > 0:
+            prof_rows = []
+            for prof in st.session_state["sim_h10_profiles"]:
+                for z_val, w_val, sig_val, p_val in zip(prof["depths"], prof["w_mm"], prof["sigma_wall_kPa"], prof["P_kN"]):
+                    prof_rows.append({
+                        "Step": prof["step"],
+                        "Head Load P0 (kN)": round(prof["P0"], 1),
+                        "Depth z (m)": round(float(z_val), 2),
+                        "Displacement w(z) (mm)": round(float(w_val), 3),
+                        "Wall Stress σ_wall(z) (kPa)": round(float(sig_val), 1),
+                        "Axial Load P(z) (kN)": round(float(p_val), 1),
+                    })
+            pd.DataFrame(prof_rows).to_excel(writer, sheet_name="10-Step Depth Profiles", startrow=2, index=False)
+            ws_p10 = writer.sheets["10-Step Depth Profiles"]
+            ws_p10.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+            ws_p10.write(1, 0, "Depth Profiles Across Pre-Failure Load Steps", title_fmt)
+            ws_p10.set_column("A:F", 22)
+
+        ws_charts = workbook.add_worksheet("Engineering Charts")
+        ws_charts.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+        ws_charts.write(1, 0, "Hollow Pile (Compression) Graphical Output", title_fmt)
+        ws_charts.set_landscape()
+        ws_charts.fit_to_pages(1, 5)
+
+        chart_list = [
+            (fig_soil, "A4", 0.62),
+            (fig_ls, "J4", 0.62),
+            (fig_comb, "A30", 0.62),
+            (fig_ds, "A56", 0.62),
+        ]
+        if fig_10_for_excel is not None:
+            chart_list.append((fig_10_for_excel, "A82", 0.62))
+        if fig_10w_for_excel is not None:
+            chart_list.append((fig_10w_for_excel, "A108", 0.62))
+        if fig_10s_for_excel is not None:
+            chart_list.append((fig_10s_for_excel, "J108", 0.62))
+
+        for idx_c, (fig_obj, cell_pos, scale_val) in enumerate(chart_list):
+            img_buf = io.BytesIO()
+            fig_obj.savefig(img_buf, format="png", dpi=180, bbox_inches="tight")
+            img_buf.seek(0)
+            ws_charts.insert_image(
+                cell_pos,
+                f"chart_hc_{idx_c}.png",
+                {
+                    "image_data": img_buf,
+                    "x_scale": scale_val,
+                    "y_scale": scale_val,
+                },
+            )
+
+    st.download_button(
+        label="Download Full Hollow Pile Excel Report (.xlsx)",
+        data=excel_buffer.getvalue(),
+        file_name=f"Hollow_Compression_Pile_D{D_out}_t{t_wall_mm:.0f}mm.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
