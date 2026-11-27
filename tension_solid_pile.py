@@ -654,6 +654,7 @@ if len(layers_df) > 0:
     fig_soil = plot_tension_pile_cross_section(layers_df, depths, D, T_node, t_mob_seg, state_seg, total_weight_kn)
     c_vis.pyplot(fig_soil)
 
+
     fig_ls, ax_a = plt.subplots(figsize=(6.8, 5.2))
     ax_a.plot(w0_tot_list, T0_list, label="Model: Total Uplift (w_total)", color="#1f497d", linewidth=2.4)
     ax_a.plot(w0_el_list, T0_list, "--", label="Model: Elastic Elongation (w_elastic)", color="#2e75b6")
@@ -970,4 +971,81 @@ if len(layers_df) > 0:
         ws_in.write(0, 0, "Prof. Uri Komornik", prof_fmt)
         ws_in.write(1, 0, "Input Soil Profile & Pressuremeter Parameters", title_fmt)
         ws_in.set_column("A:G", 22)
+        curve_df = pd.DataFrame({
+            "Uplift Load T0 (kN)": T0_list,
+            "Total Head Uplift w0 (mm)": w0_tot_list,
+            "Elastic Elongation (mm)": w0_el_list,
+            "Interface/Toe Slip (mm)": w0_fr_list,
+            "Cumulative Friction (kN)": cum_fric_list,
+        })
+        curve_df.to_excel(writer, sheet_name="Uplift Load-Disp Curve", startrow=2, index=False)
+        ws_curve = writer.sheets["Uplift Load-Disp Curve"]
+        ws_curve.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+        ws_curve.write(1, 0, "Calculated Tension Load-Displacement Curve", title_fmt)
+        ws_curve.set_column("A:E", 24)
+
+        if "sim_t10_df" in st.session_state:
+            st.session_state["sim_t10_df"].to_excel(writer, sheet_name="10-Step Uplift Sim", startrow=2, index=False)
+            ws_sim = writer.sheets["10-Step Uplift Sim"]
+            ws_sim.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+            ws_sim.write(1, 0, "10-Increment Simulated Uplift Load Test", title_fmt)
+            ws_sim.set_column("A:G", 20)
+
+        if "sim_t10_profiles" in st.session_state and len(st.session_state["sim_t10_profiles"]) > 0:
+            prof_rows = []
+            for prof in st.session_state["sim_t10_profiles"]:
+                for z_val, w_val, sig_val, t_val in zip(prof["depths"], prof["w_mm"], prof["sigma_kPa"], prof["T_kN"]):
+                    prof_rows.append({
+                        "Step": prof["step"],
+                        "Head Uplift T0 (kN)": round(prof["T0"], 1),
+                        "Depth z (m)": round(float(z_val), 2),
+                        "Upward Disp w(z) (mm)": round(float(w_val), 3),
+                        "Tensile Stress σ_t(z) (kPa)": round(float(sig_val), 1),
+                        "Tensile Load T(z) (kN)": round(float(t_val), 1),
+                    })
+            pd.DataFrame(prof_rows).to_excel(writer, sheet_name="10-Step Depth Profiles", startrow=2, index=False)
+            ws_p10 = writer.sheets["10-Step Depth Profiles"]
+            ws_p10.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+            ws_p10.write(1, 0, "Depth Profiles Across Pre-Failure Uplift Steps", title_fmt)
+            ws_p10.set_column("A:F", 22)
+
+        ws_charts = workbook.add_worksheet("Engineering Charts")
+        ws_charts.write(0, 0, "Prof. Uri Komornik", prof_fmt)
+        ws_charts.write(1, 0, "Tension Pile Graphical Output (Spaced Layout)", title_fmt)
+        ws_charts.set_landscape()
+        ws_charts.fit_to_pages(1, 5)
+
+        chart_list = [
+            (fig_soil, "A4", 0.62),
+            (fig_ls, "J4", 0.62),
+            (fig_comb, "A30", 0.62),
+            (fig_ds, "A56", 0.62),
+        ]
+        if fig_10_for_excel is not None:
+            chart_list.append((fig_10_for_excel, "A82", 0.62))
+        if fig_10w_for_excel is not None:
+            chart_list.append((fig_10w_for_excel, "A108", 0.62))
+        if fig_10s_for_excel is not None:
+            chart_list.append((fig_10s_for_excel, "J108", 0.62))
+
+        for idx_c, (fig_obj, cell_pos, scale_val) in enumerate(chart_list):
+            img_buf = io.BytesIO()
+            fig_obj.savefig(img_buf, format="png", dpi=180, bbox_inches="tight")
+            img_buf.seek(0)
+            ws_charts.insert_image(
+                cell_pos,
+                f"chart_t_{idx_c}.png",
+                {
+                    "image_data": img_buf,
+                    "x_scale": scale_val,
+                    "y_scale": scale_val,
+                },
+            )
+
+    st.download_button(
+        label="Download Full Tension Excel Report (.xlsx)",
+        data=excel_buffer.getvalue(),
+        file_name=f"Tension_Pile_Report_D{D}_L{depths[-1]:.0f}m.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
