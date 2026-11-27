@@ -284,6 +284,88 @@ def run_hollow_compression_from_base(layers_df, E, D_out, t_wall, end_mode, H_pl
         # Open-Ended with Soil Plug: compare Unplugged (ring + plug friction) vs Plugged (full gross bearing)
         P_ring = A_wall * q_mob
         P_gross = A_gross * q_mob
+                # Calculate maximum available plug resistance along H_plug
+        F_plug_avail = 0.0
+        for i in range(num_layers - 1, -1, -1):
+            z_top, z_bot = depths[i], depths[i + 1]
+            plug_len_seg = max(0.0, z_bot - max(z_top, z_plug_top))
+            if plug_len_seg > 0:
+                sig_h = layers_df.at[i, "Initial Pressuremeter σ'h (kPa)"]
+                t_p = sig_h * np.tan(np.radians(layers_df.at[i, "Peak Friction δ_peak (°)"]))
+                t_r = sig_h * np.tan(np.radians(layers_df.at[i, "Residual Friction δ_res (°)"]))
+                w_p = layers_df.at[i, "Peak Disp w_peak (mm)"] / 1000.0
+                w_r = layers_df.at[i, "Residual Disp w_res (mm)"] / 1000.0
+                tm_est, _ = calc_shear_stress(w_base_m, t_p, t_r, w_p, w_r)
+                F_plug_avail += U_in * plug_len_seg * tm_est
+
+        if P_ring + F_plug_avail >= P_gross:
+            P_base = P_gross
+            plug_status = "Plugged Mode (Plug Holds -> Full Gross Bearing)"
+            include_inner_friction = False
+        else:
+            P_base = P_ring
+            plug_status = "Unplugged Mode (Plug Slips -> Ring + Inner Shear)"
+            include_inner_friction = True
+
+    P_node[num_layers] = P_base
+
+    for i in range(num_layers - 1, -1, -1):
+        z_top, z_bot = depths[i], depths[i + 1]
+        dz = max(z_bot - z_top, 0.01)
+        plug_len_seg = max(0.0, z_bot - max(z_top, z_plug_top)) if include_inner_friction else 0.0
+
+        sig_h = layers_df.at[i, "Initial Pressuremeter σ'h (kPa)"]
+        d_peak = layers_df.at[i, "Peak Friction δ_peak (°)"]
+        w_p = layers_df.at[i, "Peak Disp w_peak (mm)"] / 1000.0
+        d_res = layers_df.at[i, "Residual Friction δ_res (°)"]
+        w_r = layers_df.at[i, "Residual Disp w_res (mm)"] / 1000.0
+
+        t_p = sig_h * np.tan(np.radians(d_peak))
+        t_r = sig_h * np.tan(np.radians(d_res))
+
+        w_top_est = w_total_node[i + 1] + (P_node[i + 1] * dz) / (E * A_wall)
+        w_mid = 0.5 * (w_total_node[i + 1] + w_top_est)
+
+        t_mob, state = calc_shear_stress(w_mid, t_p, t_r, w_p, w_r)
+        F_out = U_out * dz * t_mob
+        F_in = U_in * plug_len_seg * t_mob
+
+        P_node[i] = P_node[i + 1] + F_out + F_in
+        P_mean = 0.5 * (P_node[i] + P_node[i + 1])
+
+        dw_el = (P_mean * dz) / (E * A_wall)
+        dw_elastic_seg[i] = dw_el
+        w_elastic_node[i] = w_elastic_node[i + 1] + dw_el
+        w_total_node[i] = w_total_node[i + 1] + dw_el
+
+        t_peak_seg[i] = t_p
+        t_res_seg[i] = t_r
+        t_mob_seg[i] = t_mob
+        F_out_seg[i] = F_out
+        F_in_seg[i] = F_in
+        state_seg[i] = state
+
+    w_fric_node = np.maximum(w_total_node - w_elastic_node, 0.0)
+    cum_fric_seg = np.cumsum(F_out_seg + F_in_seg)
+
+    return (
+        depths,
+        w_total_node,
+        w_elastic_node,
+        w_fric_node,
+        P_node,
+        t_peak_seg,
+        t_res_seg,
+        t_mob_seg,
+        F_out_seg,
+        F_in_seg,
+        cum_fric_seg,
+        dw_elastic_seg,
+        state_seg,
+        P_base,
+        plug_status,
+    )
+
 def build_preset_df(preset_name, f_peak, f_res):
     cols = (
         "Bottom Depth (m)",
