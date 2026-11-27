@@ -297,7 +297,7 @@ def run_tension_model_from_base(layers_df, E, D, gamma_pile, f_tension_opt, w_ba
 def plot_tension_pile_cross_section(layers_df, depths, D, T_node, t_mob_seg, state_seg, total_weight_kn):
     fig, ax = plt.subplots(figsize=(5.6, 6.2))
     max_depth = depths[-1]
-        fallback_colors = ("#fdebd0", "#fad7a0", "#f5cba7", "#edbb99", "#e59866", "#d5dbdb")
+    fallback_colors = ("#fdebd0", "#fad7a0", "#f5cba7", "#edbb99", "#e59866", "#d5dbdb")
 
     for i in range(len(layers_df)):
         z_top, z_bot = depths[i], depths[i + 1]
