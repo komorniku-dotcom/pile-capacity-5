@@ -297,6 +297,65 @@ def run_tension_model_from_base(layers_df, E, D, gamma_pile, f_tension_opt, w_ba
 def plot_tension_pile_cross_section(layers_df, depths, D, T_node, t_mob_seg, state_seg, total_weight_kn):
     fig, ax = plt.subplots(figsize=(5.6, 6.2))
     max_depth = depths[-1]
+        fallback_colors = ("#fdebd0", "#fad7a0", "#f5cba7", "#edbb99", "#e59866", "#d5dbdb")
+
+    for i in range(len(layers_df)):
+        z_top, z_bot = depths[i], depths[i + 1]
+        dz = z_bot - z_top
+        s_type = str(layers_df.at[i, "Soil Type"]).strip()
+        sig_h = layers_df.at[i, "Initial Pressuremeter σ'h (kPa)"]
+
+        color = SOIL_COLORS.get(s_type, fallback_colors[i % len(fallback_colors)])
+        for key, val in SOIL_COLORS.items():
+            if key.lower() in s_type.lower():
+                color = val
+                break
+
+        rect_soil = patches.Rectangle((-3.0, z_top), 6.0, dz, facecolor=color, edgecolor="white", linewidth=1.2, alpha=0.9)
+        ax.add_patch(rect_soil)
+
+        z_mid = 0.5 * (z_top + z_bot)
+        ax.text(-2.85, z_mid, f"{s_type}\nσ'h = {sig_h:.0f} kPa", va="center", ha="left", fontsize=8.5, fontweight="bold", color="#2c3e50")
+        ax.text(2.85, z_mid, f"τ = {t_mob_seg.item(i):.1f} kPa\n[{state_seg[i]}]", va="center", ha="right", fontsize=8, color="#1a5276")
+
+    pile_half_w = 0.45
+    rect_pile = patches.Rectangle((-pile_half_w, 0.0), pile_half_w * 2, max_depth, facecolor="#7f8c8d", edgecolor="#2c3e50", linewidth=2, zorder=4)
+    ax.add_patch(rect_pile)
+
+    t_head_val = float(T_node.item(0))
+    ax.annotate(
+        f"T0 (Uplift) = {t_head_val:,.0f} kN ↑",
+        xy=(0, -max_depth * 0.14),
+        xytext=(0, 0.0),
+        ha="center",
+        va="top",
+        fontsize=9.5,
+        fontweight="bold",
+        color="#c0392b",
+        arrowprops=dict(facecolor="#c0392b", edgecolor="#c0392b", width=2.5, headwidth=8),
+    )
+
+    ax.annotate(
+        f"T_base = 0 kN | Self-Weight W = {total_weight_kn:,.1f} kN ↓",
+        xy=(0, max_depth + max_depth * 0.13),
+        xytext=(0, max_depth),
+        ha="center",
+        va="bottom",
+        fontsize=8.5,
+        fontweight="bold",
+        color="#117864",
+        arrowprops=dict(facecolor="#117864", edgecolor="#117864", width=2, headwidth=7),
+    )
+
+    ax.set_xlim(-3.0, 3.0)
+    ax.set_ylim(max_depth + max_depth * 0.18, -max_depth * 0.18)
+    ax.set_xticks([])
+    ax.set_ylabel("Depth (m)", fontname="Times New Roman")
+    ax.set_title(f"Tension Pile Cross-Section (D = {D}m, L = {max_depth:.1f}m)", fontsize=11, fontweight="bold", fontname="Times New Roman")
+
+    plt.tight_layout()
+    return fig
+
 def run_tension_model_partial_load(layers_df, E, D, gamma_pile, f_tension_opt, target_T0):
     A = np.pi * (D ** 2) / 4.0
     U = np.pi * D
