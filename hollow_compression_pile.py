@@ -365,6 +365,90 @@ def run_hollow_compression_from_base(layers_df, E, D_out, t_wall, end_mode, H_pl
         P_base,
         plug_status,
     )
+def plot_hollow_pile_cross_section(layers_df, depths, D_out, t_wall, end_mode, H_plug, P_node, t_mob_seg, state_seg):
+    fig, ax = plt.subplots(figsize=(5.6, 6.2))
+    max_depth = depths[-1]
+    D_in = max(D_out - 2.0 * t_wall, 0.0)
+    fallback_colors = ("#fdebd0", "#fad7a0", "#f5cba7", "#edbb99", "#e59866", "#d5dbdb")
+
+    for i in range(len(layers_df)):
+        z_top, z_bot = depths[i], depths[i + 1]
+        dz = z_bot - z_top
+        s_type = str(layers_df.at[i, "Soil Type"]).strip()
+        sig_h = layers_df.at[i, "Initial Pressuremeter σ'h (kPa)"]
+
+        color = SOIL_COLORS.get(s_type, fallback_colors[i % len(fallback_colors)])
+        for key, val in SOIL_COLORS.items():
+            if key.lower() in s_type.lower():
+                color = val
+                break
+
+        rect_soil = patches.Rectangle((-3.0, z_top), 6.0, dz, facecolor=color, edgecolor="white", linewidth=1.2, alpha=0.9)
+        ax.add_patch(rect_soil)
+
+        z_mid = 0.5 * (z_top + z_bot)
+        ax.text(-2.85, z_mid, f"{s_type}\nσ'h = {sig_h:.0f} kPa", va="center", ha="left", fontsize=8.5, fontweight="bold", color="#2c3e50")
+        ax.text(2.85, z_mid, f"τ = {t_mob_seg.item(i):.1f} kPa\n[{state_seg[i]}]", va="center", ha="right", fontsize=8, color="#1a5276")
+
+    outer_half_w = 0.52
+    wall_vis_w = max(0.08, outer_half_w * (2.0 * t_wall / max(D_out, 0.1)))
+    inner_half_w = max(outer_half_w - wall_vis_w, 0.12)
+
+    rect_void = patches.Rectangle((-inner_half_w, 0.0), inner_half_w * 2, max_depth, facecolor="white", edgecolor="none", zorder=4)
+    ax.add_patch(rect_void)
+
+    if end_mode == "Open-Ended (Soil Plug)" and H_plug > 0:
+        z_plug_top = max(max_depth - H_plug, 0.0)
+        rect_plug = patches.Rectangle(
+            (-inner_half_w, z_plug_top), inner_half_w * 2, max_depth - z_plug_top, facecolor="#a6acaf", alpha=0.75, zorder=5
+        )
+        ax.add_patch(rect_plug)
+        ax.text(0, z_plug_top + 0.5 * (max_depth - z_plug_top), f"Soil Plug\nH={H_plug:.1f}m", ha="center", va="center", fontsize=7.5, fontweight="bold", color="#1b2631", zorder=7)
+
+    rect_left = patches.Rectangle((-outer_half_w, 0.0), wall_vis_w, max_depth, facecolor="#566573", edgecolor="#1c2833", linewidth=1.5, zorder=6)
+    rect_right = patches.Rectangle((inner_half_w, 0.0), wall_vis_w, max_depth, facecolor="#566573", edgecolor="#1c2833", linewidth=1.5, zorder=6)
+    ax.add_patch(rect_left)
+    ax.add_patch(rect_right)
+
+    if end_mode == "Closed-Ended (Sealed Toe)":
+        rect_cap = patches.Rectangle((-outer_half_w, max_depth - max_depth * 0.025), outer_half_w * 2, max_depth * 0.025, facecolor="#2c3e50", zorder=7)
+        ax.add_patch(rect_cap)
+
+    p_head_val = float(P_node.item(0))
+    p_base_val = float(P_node.item(-1))
+
+    ax.annotate(
+        f"P0 = {p_head_val:,.0f} kN ↓",
+        xy=(0, 0.0),
+        xytext=(0, -max_depth * 0.14),
+        ha="center",
+        va="bottom",
+        fontsize=9.5,
+        fontweight="bold",
+        color="#c0392b",
+        arrowprops=dict(facecolor="#c0392b", edgecolor="#c0392b", width=2.5, headwidth=8),
+    )
+
+    ax.annotate(
+        f"P_base = {p_base_val:,.0f} kN ↑",
+        xy=(0, max_depth),
+        xytext=(0, max_depth + max_depth * 0.14),
+        ha="center",
+        va="top",
+        fontsize=9.5,
+        fontweight="bold",
+        color="#117864",
+        arrowprops=dict(facecolor="#117864", edgecolor="#117864", width=2.5, headwidth=8),
+    )
+
+    ax.set_xlim(-3.0, 3.0)
+    ax.set_ylim(max_depth + max_depth * 0.18, -max_depth * 0.18)
+    ax.set_xticks([])
+    ax.set_ylabel("Depth (m)", fontname="Times New Roman")
+    ax.set_title(f"Hollow Pile (D_out={D_out}m, D_in={D_in:.2f}m, t={t_wall*1000:.0f}mm)", fontsize=10.5, fontweight="bold", fontname="Times New Roman")
+
+    plt.tight_layout()
+    return fig
 
 def build_preset_df(preset_name, f_peak, f_res):
     cols = (
